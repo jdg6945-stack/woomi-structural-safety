@@ -24,6 +24,10 @@ if 'vehicle_df' not in st.session_state:
 # 스타일 설정
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+    html, body, [class*="css"], .stMarkdown, p, div, span, button, label, h1, h2, h3, h4, h5 {
+        font-family: 'Noto Sans KR', sans-serif !important;
+    }
     .formula-title { font-size: 20px; font-weight: bold; color: #495057; margin-top: 15px; margin-bottom: 15px; border-left: 5px solid #495057; padding-left: 10px; }
     .result-item { font-size: 18px; margin-bottom: 5px; }
     .result-bold { font-size: 20px; font-weight: bold; }

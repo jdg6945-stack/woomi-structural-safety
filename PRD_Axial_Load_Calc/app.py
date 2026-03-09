@@ -2,6 +2,7 @@ import os
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 import platform
 import io
 import json
@@ -12,9 +13,24 @@ from openpyxl.utils import get_column_letter
 # 1. 환경 설정 및 스타일링
 # ==========================================
 def set_env():
-    if platform.system() == 'Windows': plt.rc('font', family='Malgun Gothic')
-    elif platform.system() == 'Darwin': plt.rc('font', family='AppleGothic')
-    else: plt.rc('font', family='NanumGothic')
+    # malgunbd.ttf를 현재 디렉토리 또는 상위 인접 폴더에서 탐색
+    _candidates = [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "malgunbd.ttf"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Parking_Shoring_System", "malgunbd.ttf"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ShoringProject", "malgunbd.ttf"),
+    ]
+    _font_loaded = False
+    for _fp in _candidates:
+        if os.path.exists(_fp):
+            fm.fontManager.addfont(_fp)
+            plt.rc('font', family=fm.FontProperties(fname=_fp).get_name())
+            _font_loaded = True
+            break
+    if not _font_loaded:
+        if platform.system() == 'Windows':
+            plt.rc('font', family='Malgun Gothic')
+        elif platform.system() == 'Darwin':
+            plt.rc('font', family='AppleGothic')
     plt.rcParams['axes.unicode_minus'] = False
     try:
         st.set_page_config(layout="wide", page_title="PRD 축력 검토")
@@ -23,6 +39,10 @@ def set_env():
     
     st.markdown("""
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+        html, body, [class*="css"], .stMarkdown, p, div, span, button, label, h1, h2, h3, h4, h5 {
+            font-family: 'Noto Sans KR', sans-serif !important;
+        }
         /* Modern Premium Grey Style */
         .stApp { background-color: #ffffff; }
         

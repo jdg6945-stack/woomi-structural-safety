@@ -1,6 +1,15 @@
 import streamlit as st
 import os
 
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+html, body, [class*="css"], .stMarkdown, p, div, span, button, label, h1, h2, h3, h4, h5 {
+    font-family: 'Noto Sans KR', sans-serif !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("우미건설 구조 안전성 검토 프로그램")
 st.markdown("---")
 st.write("원하시는 구조 검토 프로그램을 선택하여 실행하세요.")

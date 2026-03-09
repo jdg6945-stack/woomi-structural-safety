@@ -31,12 +31,9 @@ except Exception:
 
 st.markdown("""
     <style>
-    @font-face {
-        font-family: 'Malgun Gothic Bold';
-        src: url('malgunbd.ttf') format('truetype');
-    }
-    body {
-        font-family: 'Malgun Gothic Bold', 'Malgun Gothic', 'NanumGothic', 'sans-serif';
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+    html, body, [class*="css"], .stMarkdown, p, div, span, button, label, h1, h2, h3, h4, h5 {
+        font-family: 'Noto Sans KR', sans-serif !important;
     }
     div[data-testid="stDataEditor"] div[role="gridcell"] {
         justify-content: center !important;

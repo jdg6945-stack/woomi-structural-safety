@@ -2,18 +2,21 @@ import os
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 import platform
 from datetime import datetime
 
 # ==========================================
 # 0. 환경 설정 및 스타일 (글자 크기 확대 + 가독성 강화)
 # ==========================================
-if platform.system() == 'Windows':
+_font_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "malgunbd.ttf")
+if os.path.exists(_font_path):
+    fm.fontManager.addfont(_font_path)
+    plt.rc('font', family=fm.FontProperties(fname=_font_path).get_name())
+elif platform.system() == 'Windows':
     plt.rc('font', family='Malgun Gothic')
 elif platform.system() == 'Darwin':
     plt.rc('font', family='AppleGothic')
-else:
-    plt.rc('font', family='NanumGothic')
 
 plt.rcParams['axes.unicode_minus'] = False
 try:
@@ -23,6 +26,10 @@ except Exception:
 
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+    html, body, [class*="css"], .stMarkdown, p, div, span, button, label, h1, h2, h3, h4, h5 {
+        font-family: 'Noto Sans KR', sans-serif !important;
+    }
     /* 1. 현장 데이터 입력 표 글자 크기 확대 */
     div[data-testid="stDataEditor"] div[role="gridcell"] {
         justify-content: center !important;

@@ -20,9 +20,9 @@ if "fd" not in st.session_state:
 st.markdown(
     """
     <style>
-    /* 전체 글꼴 크기 축소 */
-    html, body, [class*="css"], .stMarkdown {
-        font-size: 13px !important;
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+    html, body, [class*="css"], .stMarkdown, p, div, span, button, label, h1, h2, h3, h4, h5 {
+        font-family: 'Noto Sans KR', sans-serif !important;
     }
     
     /* 상단 여백 최소화 */
