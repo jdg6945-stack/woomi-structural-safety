@@ -2,6 +2,19 @@ import streamlit as st
 
 st.set_page_config(layout="wide", page_title="우미건설 구조 안전성 검토 프로그램", page_icon="🏢")
 
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+html, body, [class*="css"], .stMarkdown, p, div, span, button, label, h1, h2, h3, h4, h5 {
+    font-family: 'Noto Sans KR', sans-serif !important;
+}
+.material-symbols-rounded {
+    font-family: 'Material Symbols Rounded' !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 pages = {
     "메인 홈": [
         st.Page("Home.py", title="홈 화면", icon="🏠", default=True, url_path="home")
