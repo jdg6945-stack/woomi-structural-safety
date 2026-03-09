@@ -4,16 +4,24 @@ import matplotlib.pyplot as plt
 import platform
 import os
 from PIL import Image, ImageDraw, ImageFont
+import matplotlib.font_manager as fm
 
 # ==========================================
 # 0. 환경 설정 및 스타일
 # ==========================================
-if platform.system() == 'Windows':
-    plt.rc('font', family='Malgun Gothic')
-elif platform.system() == 'Darwin':
-    plt.rc('font', family='AppleGothic')
+font_path = os.path.join(os.path.dirname(__file__), "malgunbd.ttf")
+if os.path.exists(font_path):
+    fm.fontManager.addfont(font_path)
+    plt.rc('font', family=fm.FontProperties(fname=font_path).get_name())
 else:
-    plt.rc('font', family='NanumGothic')
+    if platform.system() == 'Windows':
+        plt.rc('font', family='Malgun Gothic')
+    elif platform.system() == 'Darwin':
+        plt.rc('font', family='AppleGothic')
+    else:
+        # Fallback to a generic sans-serif font if malgunbd.ttf is not found and not Windows/macOS
+        plt.rc('font', family='sans-serif')
+        st.warning("경고: malgunbd.ttf 폰트를 찾을 수 없어 기본 폰트로 대체됩니다. 한글 표시가 올바르지 않을 수 있습니다.")
 
 plt.rcParams['axes.unicode_minus'] = False
 try:
@@ -23,6 +31,13 @@ except Exception:
 
 st.markdown("""
     <style>
+    @font-face {
+        font-family: 'Malgun Gothic Bold';
+        src: url('malgunbd.ttf') format('truetype');
+    }
+    body {
+        font-family: 'Malgun Gothic Bold', 'Malgun Gothic', 'NanumGothic', 'sans-serif';
+    }
     div[data-testid="stDataEditor"] div[role="gridcell"] {
         justify-content: center !important;
         text-align: center !important;
@@ -207,7 +222,7 @@ with left_col:
                 
                 # 폰트 설정 (이전 크기의 2배인 40으로 조정)
                 try: 
-                    font = ImageFont.truetype("malgun.ttf", 40)
+                    font = ImageFont.truetype("malgunbd.ttf", 40)
                 except: 
                     font = ImageFont.load_default()
                 
