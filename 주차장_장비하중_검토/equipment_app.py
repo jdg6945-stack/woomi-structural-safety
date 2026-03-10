@@ -25,34 +25,43 @@ if 'vehicle_df' not in st.session_state:
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-    html, body, [class*="css"], .stMarkdown, p, div, span, button, label, h1, h2, h3, h4, h5 {
+    .stApp { font-family: 'Noto Sans KR', sans-serif !important; background-color: #f8fafc; }
+    .stMarkdown, .stMarkdown p, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3,
+    [data-testid="stSidebar"], [data-testid="stHeader"],
+    .stTextInput input, .stNumberInput input, .stSelectbox, .stMultiSelect {
         font-family: 'Noto Sans KR', sans-serif !important;
     }
-    .formula-title { font-size: 20px; font-weight: bold; color: #495057; margin-top: 15px; margin-bottom: 15px; border-left: 5px solid #495057; padding-left: 10px; }
-    .result-item { font-size: 18px; margin-bottom: 5px; }
-    .result-bold { font-size: 20px; font-weight: bold; }
-    /* 사이드바 스타일링 */
-    [data-testid="stSidebar"] {
-        background-color: #f8f9fa;
-    }
-    /* 안내 문구 박스 스타일 */
+    [data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #e2e8f0; }
+    .formula-title { font-size: 18px; font-weight: 700; color: #1e293b; margin-top: 15px; margin-bottom: 15px; border-left: 5px solid #3b82f6; padding-left: 10px; }
+    .result-item { font-size: 16px; margin-bottom: 5px; color: #334155; }
+    .result-bold { font-size: 18px; font-weight: 700; color: #1e293b; }
     .guide-box {
-        background-color: #f1f3f5;
-        padding: 15px 20px;
-        border-radius: 8px;
-        border-left: 5px solid #adb5bd;
-        margin-bottom: 25px;
-        line-height: 1.6;
-        color: #495057;
+        background-color: #f1f5f9; padding: 15px 20px; border-radius: 8px;
+        border-left: 5px solid #94a3b8; margin-bottom: 25px;
+        line-height: 1.6; color: #334155;
     }
-    .guide-box ul {
-        margin: 0;
-        padding-left: 20px;
-    }
-    .guide-box li {
-        margin-bottom: 5px;
-        font-size: 15px;
-    }
+    .guide-box ul { margin: 0; padding-left: 20px; }
+    .guide-box li { margin-bottom: 5px; font-size: 14px; }
+    /* 입력 필드 스타일 - 깔끔한 사각 테두리 */
+    div[data-testid="stNumberInput"] > div,
+    div[data-testid="stTextInput"] > div { border: none !important; box-shadow: none !important; background: transparent !important; }
+    [data-baseweb="base-input"],
+    [data-baseweb="base-input"] > div { border: none !important; box-shadow: none !important; background-color: #ffffff !important; }
+    div[data-baseweb="input"],
+    div[data-baseweb="number-input"] { background-color: #ffffff !important; border: none !important; outline: 1px solid #94a3b8 !important; outline-offset: -1px !important; border-radius: 4px !important; box-shadow: none !important; }
+    div[data-baseweb="select"] > div { background-color: #ffffff !important; border: none !important; outline: 1px solid #94a3b8 !important; outline-offset: -1px !important; border-radius: 4px !important; box-shadow: none !important; }
+    /* 라벨 스타일 */
+    div[data-testid="stWidgetLabel"] p { font-size: 11.5px !important; margin-bottom: 2px !important; line-height: 1.2 !important; }
+    /* 입력 높이 통일 */
+    div[data-baseweb="input"], div[data-baseweb="number-input"] { min-height: 32px !important; height: auto !important; }
+    input[type=number] { -moz-appearance: textfield; font-size: 13px !important; padding: 4px 8px !important; }
+    /* 요소 간격 */
+    .stNumberInput { margin-bottom: 2px !important; }
+    div[data-testid="stVerticalBlock"] > div { gap: 0.3rem !important; }
+    div[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] { gap: 0.2rem !important; }
+    /* 테이블 배경 흰색 */
+    div[data-testid="stTable"] table { background-color: #ffffff !important; }
+    div[data-testid="stDataEditor"] { background-color: #ffffff !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -77,17 +86,17 @@ with st.sidebar:
     impact_percent = st.number_input("충격계수 (%)", value=30, step=5)
     
     allowable_total = finish_load + live_load
-    st.info(f"✅ 설계 여유하중 합계: {allowable_total:.2f} kN/m²")
+    st.info(f"설계 여유하중 합계: {allowable_total:.2f} kN/m²")
 
 # -------------------------------------------
 # 2. 메인 화면
 # -------------------------------------------
-st.title("주차장 장비하중 검토 시스템")
+st.markdown("<h1 style='color: #1e293b; font-size: 1.6rem; font-weight: 800; margin-bottom: 10px;'>주차장 장비하중 검토</h1>", unsafe_allow_html=True)
 
 # 시스템 안내 문구 추가
 st.markdown("""
     <div class="guide-box">
-        <strong>⚠️ 사용 전 안내 사항</strong>
+        <strong>사용 전 안내 사항</strong>
         <ul>
             <li>본 프로그램은 공사 차량에 대한 안정성을 간편하게 확인할 수 있는 약식 검토용 시스템입니다.</li>
             <li>시스템에 입력된 차량 제원은 참고용 규격이며, 실제 현장에서 운용되는 차량에 맞게 하단의 <strong>[차량 데이터 관리]</strong>에서 수정 후 검토하시기 바랍니다.</li>
@@ -125,13 +134,21 @@ with left_col:
                 # 이미지 크기 조절을 위한 내측 여백 추가
                 _, img_c1, _ = st.columns([0.05, 0.9, 0.05])
                 with img_c1:
-                    st.image(os.path.join(os.path.dirname(__file__), files[0]), use_container_width=True)
+                    _img0 = os.path.join(os.path.dirname(__file__), files[0])
+                    if os.path.exists(_img0):
+                        st.image(_img0, use_container_width=True)
+                    else:
+                        st.info(f"이미지 파일이 없습니다: {files[0]}")
             with img_tabs[1]:
                 # 이미지 크기 조절을 위한 내측 여백 추가
                 _, img_c2, _ = st.columns([0.05, 0.9, 0.05])
                 with img_c2:
-                    st.image(os.path.join(os.path.dirname(__file__), files[1]), use_container_width=True)
-        except: st.info(f"ℹ️ '{selected_v}' 이미지를 불러올 수 없습니다.")
+                    _img1 = os.path.join(os.path.dirname(__file__), files[1])
+                    if os.path.exists(_img1):
+                        st.image(_img1, use_container_width=True)
+                    else:
+                        st.info(f"이미지 파일이 없습니다: {files[1]}")
+        except: st.info(f"'{selected_v}' 이미지를 불러올 수 없습니다.")
 
 with right_col:
     # 2-3. 검토 결과 섹션

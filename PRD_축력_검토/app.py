@@ -16,8 +16,8 @@ def set_env():
     # malgunbd.ttf를 현재 디렉토리 또는 상위 인접 폴더에서 탐색
     _candidates = [
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "malgunbd.ttf"),
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Parking_Shoring_System", "malgunbd.ttf"),
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ShoringProject", "malgunbd.ttf"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "지하주차장_동바리_설치_층수_검토", "malgunbd.ttf"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "본동_동바리_설치_층수_검토", "malgunbd.ttf"),
     ]
     _font_loaded = False
     for _fp in _candidates:
@@ -31,6 +31,16 @@ def set_env():
             plt.rc('font', family='Malgun Gothic')
         elif platform.system() == 'Darwin':
             plt.rc('font', family='AppleGothic')
+        else:
+            # Linux (Streamlit Cloud) - NanumGothic via packages.txt
+            for _lp in ["/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf",
+                        "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"]:
+                if os.path.exists(_lp):
+                    fm.fontManager.addfont(_lp)
+                    plt.rc('font', family=fm.FontProperties(fname=_lp).get_name())
+                    break
+            else:
+                plt.rc('font', family='sans-serif')
     plt.rcParams['axes.unicode_minus'] = False
     try:
         st.set_page_config(layout="wide", page_title="PRD 축력 검토")
@@ -40,90 +50,58 @@ def set_env():
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-        html, body, [class*="css"], .stMarkdown, p, div, span, button, label, h1, h2, h3, h4, h5 {
+        .stApp {
+            font-family: 'Noto Sans KR', sans-serif !important;
+            background-color: #f8fafc;
+        }
+        .stMarkdown, .stMarkdown p, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3,
+        [data-testid="stSidebar"], [data-testid="stHeader"],
+        .stTextInput input, .stNumberInput input, .stSelectbox, .stMultiSelect,
+        .stButton button, .stTab button {
             font-family: 'Noto Sans KR', sans-serif !important;
         }
-        /* Modern Premium Grey Style */
-        .stApp { background-color: #ffffff; }
         
-        .report-header { 
-            background: linear-gradient(135deg, #1e293b 0%, #475569 100%); 
-            color: white; 
-            padding: 25px 30px; 
-            border-radius: 12px; 
-            margin-bottom: 25px; 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .report-section { background: white; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        .section-title { color: #1e293b; border-left: 6px solid #475569; padding-left: 15px; margin-bottom: 20px; font-size: 1.3rem; font-weight: 800; }
+        .report-section { background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 10px; }
+        .section-title { color: #1e293b; border-bottom: 1.5px solid #1e293b; padding-bottom: 2px; margin-top: 8px; margin-bottom: 6px; font-weight: bold; font-size: 14.5px; }
         
-        .metric-card { text-align: center; padding: 20px; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .metric-label { font-size: 0.9rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-        .metric-value { font-size: 1.8rem; color: #0f172a; font-weight: 900; margin-top: 5px; }
+        .ok-banner { background-color: #f0fdf4; color: #16a34a; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0; font-weight: 700; font-size: 1.05rem; text-align: center; }
+        .ng-banner { background-color: #fef2f2; color: #dc2626; padding: 12px; border-radius: 8px; border: 1px solid #fecaca; font-weight: 700; font-size: 1.05rem; text-align: center; }
         
-        .ok-banner { background-color: #f0fdf4; color: #166534; padding: 20px; border-radius: 10px; border: 1px solid #bbf7d0; font-weight: 700; font-size: 1.2rem; text-align: center; }
-        .ng-banner { background-color: #fef2f2; color: #991b1b; padding: 20px; border-radius: 10px; border: 1px solid #fecaca; font-weight: 700; font-size: 1.2rem; text-align: center; }
-        
-        [data-testid="stSidebar"] { background-color: #f8fafc; border-right: 1px solid #e2e8f0; }
-        .sidebar-title { color: #334155; font-size: 1.2rem; font-weight: 800; margin-bottom: 10px; padding: 10px 0; border-bottom: 2px solid #e2e8f0; }
+        [data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #e2e8f0; }
+        .sidebar-title { color: #1e293b; font-size: 0.95rem; font-weight: 800; margin-bottom: 4px; padding: 4px 0; border-bottom: 1.5px solid #e2e8f0; }
         
         div.stButton > button {
             width: 100%;
-            height: 3rem;
+            height: 2.2rem;
             background-color: #f1f5f9 !important;
-            color: #334155 !important;
-            border-radius: 8px !important;
+            color: #1e293b !important;
+            border-radius: 6px !important;
             font-weight: 700 !important;
-            transition: all 0.2s ease;
+            font-size: 12px !important;
             border: 1px solid #e2e8f0 !important;
         }
         div.stButton > button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             background-color: #e2e8f0 !important;
             border-color: #cbd5e1 !important;
         }
         
-        .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-        .stTabs [data-baseweb="tab"] { 
-            background-color: white; 
-            border-radius: 8px 8px 0 0; 
-            padding: 10px 20px; 
-            border: 1px solid #e2e8f0; 
-            font-weight: 600;
-            color: #64748b;
-        }
-        .stTabs [aria-selected="true"] { background-color: #f1f5f9 !important; color: #1e293b !important; border-bottom: 2px solid #475569 !important; }
+        /* 탭 하단선 제거 */
+        div[data-baseweb="tab-highlight"] { display: none !important; }
+        div[data-baseweb="tab-list"] { border-bottom: none !important; }
         
-        /* Input Field Border Styling */
-        div[data-testid="stNumberInput"] [data-baseweb="input"],
-        div[data-testid="stSelectbox"] [data-baseweb="select"],
-        div[data-testid="stTextInput"] [data-baseweb="input"] {
-            border: 1px solid #cbd5e1 !important;
-            border-radius: 4px !important;
-            background-color: #ffffff !important;
-            min-height: 40px !important;
-        }
+        /* Input Field Border Styling - 깔끔한 사각 테두리 */
+        div[data-testid="stNumberInput"] > div,
+        div[data-testid="stTextInput"] > div { border: none !important; box-shadow: none !important; background: transparent !important; }
+        [data-baseweb="base-input"],
+        [data-baseweb="base-input"] > div { border: none !important; box-shadow: none !important; background-color: #ffffff !important; }
+        div[data-baseweb="input"],
+        div[data-baseweb="number-input"] { background-color: #ffffff !important; border: none !important; outline: 1px solid #94a3b8 !important; outline-offset: -1px !important; border-radius: 4px !important; box-shadow: none !important; min-height: 32px !important; }
+        div[data-testid="stSelectbox"] [data-baseweb="select"] > div { background-color: #ffffff !important; border: none !important; outline: 1px solid #94a3b8 !important; outline-offset: -1px !important; border-radius: 4px !important; box-shadow: none !important; }
         
-        /* Default: Hide +/- buttons */
-        div.hide-btns [data-testid="stNumberInput"] button {
-            display: none !important;
-        }
-        
-        /* Specific targeting for better control if needed */
-        div[data-testid="stNumberInput"] button {
-            display: inline-flex; /* Standard buttons restored */
-        }
-        
-        /* Remove internal borders that cause partial visibility */
         div[data-testid="stNumberInput"] > div {
             border: none !important;
         }
         
-        /* Ensure the input text is centered and has padding */
         div[data-testid="stNumberInput"] input {
             padding: 8px 12px !important;
         }
@@ -131,80 +109,93 @@ def set_env():
         /* Focused status */
         div[data-testid="stNumberInput"] [data-baseweb="input"]:focus-within, 
         div[data-testid="stSelectbox"] [data-baseweb="select"]:focus-within {
-            border-color: #475569 !important;
-            box-shadow: 0 0 0 1px rgba(71, 85, 105, 0.2) !important;
+            outline-color: #3b82f6 !important;
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2) !important;
         }
-        /* Ultra-compact widget spacing */
+        /* 사이드바 위젯 간격 */
         div[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div {
-            margin-bottom: -24px !important;
+            gap: 0.1rem !important;
         }
-        div[data-testid="stSidebar"] label {
-            font-size: 0.72rem !important;
-            font-weight: 700 !important;
-            margin-bottom: -18px !important;
-            color: #475569 !important;
+        div[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] { gap: 0.1rem !important; }
+        /* 라벨 스타일 */
+        div[data-testid="stWidgetLabel"] p {
+            font-size: 11.5px !important;
+            margin-bottom: 2px !important;
+            line-height: 1.2 !important;
         }
-        /* Minimal height for inputs and components */
-        div[data-testid="stSidebar"] div[data-baseweb="input"] > div {
-            min-height: 24px !important;
-            height: 24px !important;
-            padding: 0px 6px !important;
+        /* 사이드바 입력 높이 */
+        div[data-baseweb="input"],
+        div[data-baseweb="number-input"] {
+            min-height: 32px !important;
+            height: auto !important;
         }
-        div[data-testid="stSidebar"] input {
-            font-size: 0.8rem !important;
-            padding: 0px !important;
+        input[type=number] {
+            -moz-appearance: textfield;
+            font-size: 12px !important;
+            padding: 4px 8px !important;
         }
-        /* Tight selectboxes */
+        /* 사이드바 셀렉트박스 */
         div[data-testid="stSidebar"] div[data-baseweb="select"] > div {
-            min-height: 24px !important;
-            height: 24px !important;
-            font-size: 0.75rem !important;
-            padding: 0px 4px !important;
+            min-height: 32px !important;
+            height: auto !important;
+            font-size: 12px !important;
         }
-        /* Section titles - Larger and Bold */
-        .sidebar-title {
-            font-size: 1.15rem !important;
-            margin-bottom: 0px !important;
-            margin-top: 10px !important;
-            font-weight: 800 !important;
-            color: #1e293b !important;
-        }
-        /* Remove borders from containers and tabs in sidebar */
-        div[data-testid="stSidebar"] [data-testid="stVerticalBlock"] div[data-testid="stExpander"] {
-            border: none !important;
-        }
-        div[data-testid="stSidebar"] [data-baseweb="tab-list"] {
-            border-bottom: none !important;
-        }
-        div[data-testid="stSidebar"] [data-baseweb="tab-list"] button {
-            border-bottom: none !important;
-        }
-        div[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] > div[style*="border"] {
-            border: none !important;
-        }
-        /* Extra tightness for ultra-compact after removing borders */
+        /* 요소 간격 */
+        .stNumberInput { margin-bottom: 2px !important; }
+        .stCheckbox { margin-bottom: 2px !important; }
         div[data-testid="stSidebar"] div.stElementContainer {
-            margin-bottom: -22px !important;
+            margin-bottom: 0px !important;
         }
-        div[data-testid="stSidebar"] [data-testid="stForm"] {
-            padding: 5px !important;
-        }
-        /* Reduce gap between columns in sidebar */
-        div[data-testid="stSidebar"] [data-testid="column"] {
-            gap: 0.5rem !important;
-        }
+        hr { margin: 0.3rem 0 !important; }
         /* Data Editor Header Wrap Fix */
-    [data-testid="stDataEditor"] [data-testid="stHeader"] {
-        white-space: pre-line !important;
-        height: auto !important;
-        min-height: 40px !important;
-        display: flex !important;
-        align-items: center !important;
-    }
-    [data-testid="stDataEditor"] div[role="columnheader"] {
-        padding-top: 5px !important;
-        padding-bottom: 5px !important;
-    }
+        [data-testid="stDataEditor"] div[role="columnheader"] {
+            padding-top: 5px !important;
+            padding-bottom: 5px !important;
+        }
+        /* 메트릭 크기 축소 */
+        div[data-testid="stMetricValue"] { font-size: 1.4rem !important; font-weight: bold !important; }
+        div[data-testid="stMetricLabel"] { font-size: 0.8rem !important; }
+        /* ===== 사이드바 압축 스타일 ===== */
+        /* 사이드바 상단 여백 */
+        section[data-testid="stSidebar"] > div:first-child { padding-top: 0.3rem !important; }
+        /* 사이드바 border-container 패딩 축소 */
+        div[data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {
+            padding: 2px 6px !important;
+            margin-top: 0 !important;
+            margin-bottom: 1px !important;
+        }
+        /* 사이드바 탭 */
+        div[data-testid="stSidebar"] button[data-baseweb="tab"] {
+            font-size: 11px !important;
+            padding: 2px 6px !important;
+            min-height: auto !important;
+        }
+        div[data-testid="stSidebar"] [data-baseweb="tab-panel"] { padding-top: 0px !important; }
+        div[data-testid="stSidebar"] [data-baseweb="tab-list"] { gap: 0 !important; margin-bottom: 0 !important; }
+        /* 사이드바 columns 간격 */
+        div[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] { gap: 0.2rem !important; }
+        /* 사이드바 p 태그 */
+        div[data-testid="stSidebar"] p { margin-bottom: 0 !important; }
+        /* 사이드바 container margin */
+        div[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"] { margin-top: 1px !important; }
+        /* 사이드바 divider */
+        div[data-testid="stSidebar"] hr { margin: 0.1rem 0 !important; }
+        /* 사이드바 버튼 높이 */
+        div[data-testid="stSidebar"] div.stButton > button { height: 1.8rem !important; font-size: 11px !important; }
+        /* 사이드바 number-input 높이 축소 */
+        div[data-testid="stSidebar"] div[data-baseweb="input"],
+        div[data-testid="stSidebar"] div[data-baseweb="number-input"] { min-height: 28px !important; height: 28px !important; }
+        div[data-testid="stSidebar"] input[type=number] { padding: 2px 6px !important; font-size: 11px !important; }
+        /* 사이드바 selectbox 높이 축소 */
+        div[data-testid="stSidebar"] div[data-baseweb="select"] > div { min-height: 28px !important; height: 28px !important; font-size: 11px !important; }
+        /* 사이드바 라벨 축소 */
+        div[data-testid="stSidebar"] div[data-testid="stWidgetLabel"] p { font-size: 10.5px !important; margin-bottom: 0px !important; line-height: 1.1 !important; }
+        div[data-testid="stSidebar"] div[data-testid="stWidgetLabel"] { margin-bottom: 0px !important; padding-bottom: 0px !important; }
+        /* 사이드바 stElementContainer 간격 제거 */
+        div[data-testid="stSidebar"] div.stElementContainer { margin-bottom: 0px !important; margin-top: 0px !important; }
+        /* 사이드바 number input 마진 */
+        div[data-testid="stSidebar"] .stNumberInput { margin-bottom: 0px !important; }
+        div[data-testid="stSidebar"] .stSelectbox { margin-bottom: 0px !important; }
     </style>
         """, unsafe_allow_html=True)
 
@@ -372,78 +363,71 @@ class PRDEngine:
 def member_input_form_compact(key_p, defaults=None):
     with st.container():
         st.markdown('<div class="hide-btns">', unsafe_allow_html=True)
-        # 기본 제원 (층고, 슬래브, 시공하중 등) - 3열 배치
-        c1, c2, c3 = st.columns([1,1,1])
+        # 기본 제원 - 2열 배치 (사이드바 폭 대응)
+        c1, c2 = st.columns(2)
         h = c1.number_input("층고(m)", value=defaults['h'] if defaults else 3.5, step=0.1, key=f"{key_p}_h")
         s = c2.number_input("슬래브(m)", value=defaults['s'] if defaults else 0.2, step=0.01, key=f"{key_p}_s")
-        ll = c3.number_input("시공하중(kN/m²)", value=defaults['ll'] if defaults else 1.0, step=0.1, key=f"{key_p}_ll")
         
-        c1, c2, c3 = st.columns([1,1,1])
+        c1, c2 = st.columns(2)
         x = c1.number_input("X분담(m)", value=defaults['x'] if defaults else 8.2, step=0.1, key=f"{key_p}_x")
         y = c2.number_input("Y분담(m)", value=defaults['y'] if defaults else 8.2, step=0.1, key=f"{key_p}_y")
-        add_ll = c3.number_input("기타 DL(kN/m²)", value=defaults['add_ll'] if defaults else (0.0 if key_p == "F" else 0.0), step=0.1, key=f"{key_p}_add")
+        
+        c1, c2 = st.columns(2)
+        ll = c1.number_input("시공LL(kN/m²)", value=defaults['ll'] if defaults else 1.0, step=0.1, key=f"{key_p}_ll")
+        add_ll = c2.number_input("기타DL(kN/m²)", value=defaults['add_ll'] if defaults else (0.0 if key_p == "F" else 0.0), step=0.1, key=f"{key_p}_add")
+
+        # 기둥 정보
+        st.markdown("<p style='font-size:13px; font-weight:900; margin:6px 0 3px 0; border-top:1.5px solid #cbd5e1; padding-top:6px; color:#1e293b;'>기둥</p>", unsafe_allow_html=True)
+        ct = st.selectbox("유형", ["RC", "철골(ㅁ)", "철골(H)"], 
+                          index=0 if not defaults else ["RC", "철골(ㅁ)", "철골(H)"].index(defaults['ct']), 
+                          key=f"{key_p}_ct", label_visibility="collapsed")
+        
+        cv = defaults['cv'].copy() if defaults else {"cx":800, "cy":800, "h":500, "b":500, "t":25, "tw":16, "tf":25}
+        
+        cols = st.columns(4)
+        if ct == "RC":
+            cv['cx'] = cols[0].number_input("폭(mm)", value=int(cv['cx']), step=10, key=f"{key_p}_cx")
+            cv['cy'] = cols[1].number_input("깊이(mm)", value=int(cv['cy']), step=10, key=f"{key_p}_cy")
+        elif ct == "철골(ㅁ)":
+            cv['h'] = cols[0].number_input("H(mm)", value=int(cv['h']), step=10, key=f"{key_p}_ch")
+            cv['b'] = cols[1].number_input("B(mm)", value=int(cv['b']), step=10, key=f"{key_p}_cb")
+            cv['t'] = cols[2].number_input("t(mm)", value=int(cv['t']), step=1, key=f"{key_p}_cthick")
+        else:
+            cv['h'] = cols[0].number_input("H(mm)", value=int(cv['h']), step=10, key=f"{key_p}_chh")
+            cv['b'] = cols[1].number_input("B(mm)", value=int(cv['b']), step=10, key=f"{key_p}_cbb")
+            cv['tw'] = cols[2].number_input("tw(mm)", value=int(cv['tw']), step=1, key=f"{key_p}_ctw")
+            cv['tf'] = cols[3].number_input("tf(mm)", value=int(cv['tf']), step=1, key=f"{key_p}_ctf")
+
+        # 보 정보
+        st.markdown("<p style='font-size:13px; font-weight:900; margin:6px 0 3px 0; border-top:1.5px solid #cbd5e1; padding-top:6px; color:#1e293b;'>보</p>", unsafe_allow_html=True)
+        d_bl = defaults['b_list'] if defaults else [{"type": "RC", "bl": 8.2, "bw": 500, "bh": 700}]
+        _bcol1, _bcol2 = st.columns([1, 2])
+        with _bcol1:
+            b_cnt = st.number_input("수량", min_value=0, max_value=8, value=len(d_bl), key=f"{key_p}_bcnt")
+        
+        b_list = []
+        if b_cnt > 0:
+            b_tabs = st.tabs([f"#{i+1}" for i in range(int(b_cnt))])
+            fallback_b = {"type": "RC", "bl": 8.2, "bw": 500, "bh": 700}
+            for i, current_tab in enumerate(b_tabs):
+                prev_b = d_bl[i] if i < len(d_bl) else (d_bl[0] if len(d_bl) > 0 else fallback_b)
+                with current_tab:
+                    bcols = st.columns(4)
+                    bt = bcols[0].selectbox(f"종류", ["RC", "철골(H)"], index=0 if prev_b.get('type')=="RC" else 1, key=f"{key_p}_bt_{i}")
+                    b_len = bcols[1].number_input(f"L(m)", value=float(prev_b['bl']), step=0.1, key=f"{key_p}_blen_{i}")
+                    
+                    if bt == "RC":
+                        bw = bcols[2].number_input(f"W(mm)", value=int(prev_b.get('bw', 500)), step=10, key=f"{key_p}_bw_{i}")
+                        bh = bcols[3].number_input(f"H(mm)", value=int(prev_b.get('bh', 700)), step=10, key=f"{key_p}_bh_{i}")
+                        b_list.append({"type": "RC", "bl": b_len, "bw": bw, "bh": bh})
+                    else:
+                        bh_s = bcols[2].number_input(f"H(mm)", value=int(prev_b.get('h', 500)), step=10, key=f"{key_p}_bhs_{i}")
+                        bb_s = bcols[3].number_input(f"B(mm)", value=int(prev_b.get('b', 300)), step=10, key=f"{key_p}_bbs_{i}")
+                        bcols2 = st.columns(4)
+                        btw_s = bcols2[0].number_input(f"tw(mm)", value=int(prev_b.get('tw', 10)), step=1, key=f"{key_p}_btws_{i}")
+                        btf_s = bcols2[1].number_input(f"tf(mm)", value=int(prev_b.get('tf', 16)), step=1, key=f"{key_p}_btfs_{i}")
+                        b_list.append({"type": "Steel", "bl": b_len, "h": bh_s, "b": bb_s, "tw": btw_s, "tf": btf_s})
         st.markdown('</div>', unsafe_allow_html=True)
-
-        # 기둥 정보 (테두리 적용)
-        with st.container(border=True):
-            st.markdown("<p style='font-size:0.85rem; font-weight:bold; margin-bottom:5px;'>기둥 정보</p>", unsafe_allow_html=True)
-            st.markdown('<div class="hide-btns">', unsafe_allow_html=True)
-            ct = st.selectbox("기둥 유형", ["RC", "철골(ㅁ)", "철골(H)"], 
-                              index=0 if not defaults else ["RC", "철골(ㅁ)", "철골(H)"].index(defaults['ct']), 
-                              key=f"{key_p}_ct")
-            
-            cv = defaults['cv'].copy() if defaults else {"cx":800, "cy":800, "h":500, "b":500, "t":25, "tw":16, "tf":25}
-            
-            # 4열 레이아웃 적용
-            cols = st.columns(4)
-            if ct == "RC":
-                cv['cx'] = cols[0].number_input("폭(mm)", value=int(cv['cx']), step=10, key=f"{key_p}_cx")
-                cv['cy'] = cols[1].number_input("깊이(mm)", value=int(cv['cy']), step=10, key=f"{key_p}_cy")
-            elif ct == "철골(ㅁ)":
-                cv['h'] = cols[0].number_input("H(mm)", value=int(cv['h']), step=10, key=f"{key_p}_ch")
-                cv['b'] = cols[1].number_input("B(mm)", value=int(cv['b']), step=10, key=f"{key_p}_cb")
-                cv['t'] = cols[2].number_input("t(mm)", value=int(cv['t']), step=1, key=f"{key_p}_cthick")
-            else: # 철골(H)
-                cv['h'] = cols[0].number_input("H(mm)", value=int(cv['h']), step=10, key=f"{key_p}_chh")
-                cv['b'] = cols[1].number_input("B(mm)", value=int(cv['b']), step=10, key=f"{key_p}_cbb")
-                cv['tw'] = cols[2].number_input("tw(mm)", value=int(cv['tw']), step=1, key=f"{key_p}_ctw")
-                cv['tf'] = cols[3].number_input("tf(mm)", value=int(cv['tf']), step=1, key=f"{key_p}_ctf")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        # 보 정보 (테두리 적용)
-        with st.container(border=True):
-            st.markdown("<p style='font-size:0.85rem; font-weight:bold; margin-bottom:5px;'>보 정보</p>", unsafe_allow_html=True)
-            d_bl = defaults['b_list'] if defaults else [{"type": "RC", "bl": 8.2, "bw": 500, "bh": 700}]
-            # Beam count RESTORES +/- buttons (no hide-btns wrapper)
-            b_cnt = st.number_input("보 수량", min_value=0, max_value=8, value=len(d_bl), key=f"{key_p}_bcnt")
-            
-            b_list = []
-            if b_cnt > 0:
-                st.markdown('<div class="hide-btns">', unsafe_allow_html=True)
-                b_tabs = st.tabs([f"#{i+1}" for i in range(int(b_cnt))])
-                # Fallback beam info if d_bl is empty
-                fallback_b = {"type": "RC", "bl": 8.2, "bw": 500, "bh": 700}
-                for i, current_tab in enumerate(b_tabs):
-                    prev_b = d_bl[i] if i < len(d_bl) else (d_bl[0] if len(d_bl) > 0 else fallback_b)
-                    with current_tab:
-                        bcols = st.columns(4)
-                        bt = bcols[0].selectbox(f"종류", ["RC", "철골(H)"], index=0 if prev_b.get('type')=="RC" else 1, key=f"{key_p}_bt_{i}")
-                        b_len = bcols[1].number_input(f"L(m)", value=float(prev_b['bl']), step=0.1, key=f"{key_p}_blen_{i}")
-                        
-                        if bt == "RC":
-                            bw = bcols[2].number_input(f"W(mm)", value=int(prev_b.get('bw', 500)), step=10, key=f"{key_p}_bw_{i}")
-                            bh = bcols[3].number_input(f"H(mm)", value=int(prev_b.get('bh', 700)), step=10, key=f"{key_p}_bh_{i}")
-                            b_list.append({"type": "RC", "bl": b_len, "bw": bw, "bh": bh})
-                        else: # 철골(H) 보
-                            bh_s = bcols[2].number_input(f"H(mm)", value=int(prev_b.get('h', 500)), step=10, key=f"{key_p}_bhs_{i}")
-                            bb_s = bcols[3].number_input(f"B(mm)", value=int(prev_b.get('b', 300)), step=10, key=f"{key_p}_bbs_{i}")
-                            
-                            # 철골 보의 두께 정보는 추가 행(4열)으로 배치
-                            bcols2 = st.columns(4)
-                            btw_s = bcols2[0].number_input(f"tw(mm)", value=int(prev_b.get('tw', 10)), step=1, key=f"{key_p}_btws_{i}")
-                            btf_s = bcols2[1].number_input(f"tf(mm)", value=int(prev_b.get('tf', 16)), step=1, key=f"{key_p}_btfs_{i}")
-                            b_list.append({"type": "Steel", "bl": b_len, "h": bh_s, "b": bb_s, "tw": btw_s, "tf": btf_s})
-                st.markdown('</div>', unsafe_allow_html=True)
                     
     return {"h":h, "x":x, "y":y, "s":s, "ll":ll, "add_ll":add_ll, "ct":ct, "cv":cv, "b_list":b_list}
 
@@ -504,16 +488,13 @@ def main():
 
     # --- SIDEBAR INPUTS ---
     with st.sidebar:
-        st.markdown("<div class='sidebar-title'>1 단계: 프로젝트 설정</div>", unsafe_allow_html=True)
-        with st.container():
-            sc1, sc2 = st.columns(2)
-            f_cnt = sc1.number_input("지상(F)", min_value=1, value=10)
-            b_cnt = sc2.number_input("지하(B)", min_value=1, value=7)
-            
-        with st.container():
-            sc3, sc4 = st.columns(2)
-            limit = sc3.number_input("PRD축력(kN)", value=8000, step=100)
-            target_f = sc4.number_input("목표층(지상)", min_value=1, value=int(f_cnt))
+        st.markdown("<div class='sidebar-title'>프로젝트 설정</div>", unsafe_allow_html=True)
+        sc1, sc2 = st.columns(2)
+        f_cnt = sc1.number_input("지상(F)", min_value=1, value=10)
+        b_cnt = sc2.number_input("지하(B)", min_value=1, value=7)
+        sc3, sc4 = st.columns(2)
+        limit = sc3.number_input("PRD축력(kN)", value=8000, step=100)
+        target_f = sc4.number_input("목표층(지상)", min_value=1, value=int(f_cnt))
         
         if st.session_state.prd_df:
             st.markdown("---")
@@ -524,18 +505,14 @@ def main():
                     st.session_state.run_analysis = False
                 st.rerun()
 
-        # Step 2: Base Config - Hide if data is already loaded to avoid confusion
         if st.session_state.prd_df is None:
-            st.markdown("<div class='sidebar-title'>2 단계: 기본 제원 설정</div>", unsafe_allow_html=True)
-            tab_f, tab_b = st.tabs(["지상층 (F)", "지하층 (B)"])
+            st.markdown("<div class='sidebar-title'>기본 제원 설정</div>", unsafe_allow_html=True)
+            tab_f, tab_b = st.tabs(["지상층", "지하층"])
             with tab_f: f_set = member_input_form_compact("F")
             with tab_b: b_set = member_input_form_compact("B")
-            
-            st.write("")
             if st.button("기본 데이터 적용", type="primary"):
                 st.session_state['run_analysis'] = True
         else:
-            # Provide dummy sets to keep script running if needed elsewhere (though new_data logic is skipped)
             f_set = b_set = None
 
 
@@ -620,10 +597,6 @@ def main():
                 st.pyplot(draw_professional_diagram(res, limit))
         
         st.write("")
-        
-        st.write("")
-        
-        st.write("")
 
         # Editor Section First
         st.markdown("<div class='section-title'>층별 입력 내역</div>", unsafe_allow_html=True)
@@ -647,19 +620,19 @@ def main():
                 "LL(kN/m2)": "LL\n(kN/m2)",
                 "단일 DL(kN)": "DL\n(kN)",
                 "단일 LL(kN)": "LL\n(kN)",
-                "단일 DL+LL(kN)": "🟡 DL+LL\n(kN)",
-                "단일 1.2D+1.6L(kN)": "🟡 1.2D+1.6L\n(kN)",
-                "단일 1.2D+1.28L(kN)": "🟡 1.2D+1.28L\n(kN)",
-                "DL+LL": "🟠 누적\nDL+LL(kN)",
-                "1.2D + 1.6L": "🟠 누적\n1.2D+1.6L",
-                "1.2D + 1.28L": "🟠 누적\n1.2D+1.28L"
+                "단일 DL+LL(kN)": "DL+LL\n(kN)",
+                "단일 1.2D+1.6L(kN)": "1.2D+1.6L\n(kN)",
+                "단일 1.2D+1.28L(kN)": "1.2D+1.28L\n(kN)",
+                "DL+LL": "누적\nDL+LL(kN)",
+                "1.2D + 1.6L": "누적\n1.2D+1.6L",
+                "1.2D + 1.28L": "누적\n1.2D+1.28L"
             }
             # Prepare DataFrame for Editor
             display_df = edit_df[list(column_mapping.keys())].rename(columns=column_mapping)
             
             # Add Total Sum Row
-            sum_cols = ["슬래브\n무게(kN)", "보 무게\n(kN)", "기둥 무게\n(kN)", "DL\n(kN)", "LL\n(kN)", "🟡 DL+LL\n(kN)", "🟡 1.2D+1.6L\n(kN)", "🟡 1.2D+1.28L\n(kN)"]
-            cum_cols = ["🟠 누적\nDL+LL(kN)", "🟠 누적\n1.2D+1.6L", "🟠 누적\n1.2D+1.28L"]
+            sum_cols = ["슬래브\n무게(kN)", "보 무게\n(kN)", "기둥 무게\n(kN)", "DL\n(kN)", "LL\n(kN)", "DL+LL\n(kN)", "1.2D+1.6L\n(kN)", "1.2D+1.28L\n(kN)"]
+            cum_cols = ["누적\nDL+LL(kN)", "누적\n1.2D+1.6L", "누적\n1.2D+1.28L"]
             total_sum_val = {col: display_df[col].sum() if col in sum_cols else None for col in display_df.columns}
             
             # For cumulative columns, show the final value (bottom-most floor)
@@ -669,14 +642,14 @@ def main():
                     if not valid_vals.empty:
                         total_sum_val[c_col] = valid_vals.iloc[-1]
 
-            total_sum_val["층"] = "📊 합계"
+            total_sum_val["층"] = "합계"
             display_df = pd.concat([display_df, pd.DataFrame([total_sum_val])], ignore_index=True)
             
             # Configure Layout (Simplified Schema)
             res_cols = [
                 "면적\n(m2)", "슬래브\n무게(kN)", "보 무게\n(kN)", "기둥 무게\n(kN)", 
-                "DL\n(kN)", "LL\n(kN)", "🟡 DL+LL\n(kN)", "🟡 1.2D+1.6L\n(kN)", "🟡 1.2D+1.28L\n(kN)",
-                "🟠 누적\nDL+LL(kN)", "🟠 누적\n1.2D+1.6L", "🟠 누적\n1.2D+1.28L"
+                "DL\n(kN)", "LL\n(kN)", "DL+LL\n(kN)", "1.2D+1.6L\n(kN)", "1.2D+1.28L\n(kN)",
+                "누적\nDL+LL(kN)", "누적\n1.2D+1.6L", "누적\n1.2D+1.28L"
             ]
             edited = st.data_editor(
                 display_df, 
@@ -697,12 +670,12 @@ def main():
                     "LL\n(kN/m2)": st.column_config.NumberColumn(width=90),
                     "DL\n(kN)": st.column_config.NumberColumn(width=110),
                     "LL\n(kN)": st.column_config.NumberColumn(width=110),
-                    "🟡 DL+LL\n(kN)": st.column_config.NumberColumn(width=120),
-                    "🟡 1.2D+1.6L\n(kN)": st.column_config.NumberColumn(width=130),
-                    "🟡 1.2D+1.28L\n(kN)": st.column_config.NumberColumn(width=130),
-                    "🟠 누적\nDL+LL(kN)": st.column_config.NumberColumn(width=130, format="%.1f"),
-                    "🟠 누적\n1.2D+1.6L": st.column_config.NumberColumn(width=130, format="%.1f"),
-                    "🟠 누적\n1.2D+1.28L": st.column_config.NumberColumn(width=130, format="%.1f"),
+                    "DL+LL\n(kN)": st.column_config.NumberColumn(width=120),
+                    "1.2D+1.6L\n(kN)": st.column_config.NumberColumn(width=130),
+                    "1.2D+1.28L\n(kN)": st.column_config.NumberColumn(width=130),
+                    "누적\nDL+LL(kN)": st.column_config.NumberColumn(width=130, format="%.1f"),
+                    "누적\n1.2D+1.6L": st.column_config.NumberColumn(width=130, format="%.1f"),
+                    "누적\n1.2D+1.28L": st.column_config.NumberColumn(width=130, format="%.1f"),
                 }
             )
             
@@ -753,7 +726,7 @@ def main():
                         
                         lc1, lc2 = st.columns([4, 1])
                         with lc1:
-                            with st.expander(f"📍 {ef_name} 변경사항", expanded=False):
+                            with st.expander(f"{ef_name} 변경사항", expanded=False):
                                 # Compare values and show only diffs
                                 diff_found = False
                                 for key_map, label in {
@@ -852,9 +825,9 @@ def main():
                         st.markdown(f"** DL:** {dl:,.2f} kN")
                         st.markdown(f"** LL:** {ll:,.2f} kN")
                         st.markdown("<hr style='margin:10px 0; border-top:1px solid #e2e8f0;'>", unsafe_allow_html=True)
-                        st.markdown(f"**🟡 DL+LL:** {dl+ll:,.2f} kN")
-                        st.markdown(f"**🟡 1.2D + 1.6L:** {1.2*dl + 1.6*ll:,.2f} kN")
-                        st.markdown(f"**🟡 1.2D + 1.28L:** {1.2*dl + 1.28*ll:,.2f} kN")
+                        st.markdown(f"**DL+LL:** {dl+ll:,.2f} kN")
+                        st.markdown(f"**1.2D + 1.6L:** {1.2*dl + 1.6*ll:,.2f} kN")
+                        st.markdown(f"**1.2D + 1.28L:** {1.2*dl + 1.28*ll:,.2f} kN")
                     with c_b:
                         for log in l["Logs"]: st.code(log, language="markdown")
 
@@ -995,7 +968,7 @@ def main():
                 # 6. TOTAL SUM ROW
                 last_data_row = n_rows + data_start_row - 1
                 sum_row_num = last_data_row + 1
-                worksheet[f'A{sum_row_num}'] = "📊 합계"
+                worksheet[f'A{sum_row_num}'] = "합계"
                 worksheet[f'A{sum_row_num}'].font = Font(bold=True)
                 
                 # Sum columns (DL, LL Single, etc.)
@@ -1013,7 +986,7 @@ def main():
                 # 7. LEGEND / NOTE (Bottom)
                 note_row = sum_row_num + 2
                 worksheet.merge_cells(f'A{note_row}:F{note_row}')
-                worksheet[f'A{note_row}'] = "⚠️ 사용 안내 및 범례"
+                worksheet[f'A{note_row}'] = "사용 안내 및 범례"
                 worksheet[f'A{note_row}'].font = Font(bold=True, size=11)
                 
                 worksheet[f'A{note_row+1}'] = "■ 흰색 셀: 사용자 입력이 가능한 구간입니다. (층고, 면적, 하중 등)"
@@ -1083,11 +1056,10 @@ def main():
     else:
         # WELCOME SCREEN
         st.markdown(f"""
-            <div style='text-align:center; padding: 40px 20px; color: #1e293b; background: white; border-radius: 20px; border: 2px dashed #e2e8f0;'>
-                <h2 style='font-weight: 800; margin-bottom: 15px;'>PRD 축력 검토</h2>
-                <p style='color: #64748b; font-size: 1.05rem; max-width: 600px; margin: 0 auto;'>
-                    왼쪽 사이드바에서 프로젝트 층수와 허용 축력을 입력한 후 <b>해석 실행 (RUN ANALYSIS)</b> 버튼을 눌러
-                    정밀한 구조 검토 레포트를 생성하세요.
+            <div style='text-align:center; padding: 25px 15px; color: #1e293b; background: white; border-radius: 12px; border: 2px dashed #e2e8f0;'>
+                <h2 style='font-weight: 800; margin-bottom: 10px; font-size: 1.4rem;'>PRD 축력 검토</h2>
+                <p style='color: #64748b; font-size: 0.95rem; max-width: 600px; margin: 0 auto; white-space: nowrap;'>
+                    왼쪽 사이드바에서 프로젝트 층수와 허용 축력을 입력한 후 <b>(기본 데이터 적용)</b> 버튼을 눌러주세요.                
                 </p>
             </div>
             """, unsafe_allow_html=True)

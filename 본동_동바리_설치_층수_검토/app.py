@@ -17,101 +17,145 @@ elif platform.system() == 'Windows':
     plt.rc('font', family='Malgun Gothic')
 elif platform.system() == 'Darwin':
     plt.rc('font', family='AppleGothic')
+else:
+    # Linux (Streamlit Cloud) - NanumGothic via packages.txt
+    for _lp in ["/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf",
+                "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"]:
+        if os.path.exists(_lp):
+            fm.fontManager.addfont(_lp)
+            plt.rc('font', family=fm.FontProperties(fname=_lp).get_name())
+            break
+    else:
+        plt.rc('font', family='sans-serif')
 
 plt.rcParams['axes.unicode_minus'] = False
 try:
-    st.set_page_config(layout="wide", page_title="가설 동바리 검토 시스템")
+    st.set_page_config(layout="wide", page_title="본동 동바리 설치 층수 검토")
 except Exception:
     pass
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-    html, body, [class*="css"], .stMarkdown, p, div, span, button, label, h1, h2, h3, h4, h5 {
+    /* 전역 폰트 & 배경 */
+    .stApp { font-family: 'Noto Sans KR', sans-serif !important; background-color: #f8fafc; }
+    .stMarkdown, .stMarkdown p, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3,
+    [data-testid="stSidebar"], [data-testid="stHeader"],
+    .stTextInput input, .stNumberInput input, .stSelectbox, .stMultiSelect {
         font-family: 'Noto Sans KR', sans-serif !important;
     }
-    /* 1. 현장 데이터 입력 표 글자 크기 확대 */
+    /* 사이드바 */
+    [data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #e2e8f0; }
+    /* 데이터 에디터 - 가운데 정렬 */
+    div[data-testid="stDataEditor"] [data-testid="glide-cell"] {
+        justify-content: center !important; text-align: center !important;
+    }
     div[data-testid="stDataEditor"] div[role="gridcell"] {
-        justify-content: center !important;
+        justify-content: center !important; text-align: center !important; font-size: 16px !important;
+    }
+    div[data-testid="stDataEditor"] div[role="gridcell"] input {
         text-align: center !important;
-        font-size: 16px !important;
     }
-    
-    /* 2. 지지층 검토 결과 표 스타일 */
-    .full-width-table {
-        width: 100% !important;
-        border-collapse: collapse;
-        margin-top: 15px;
-        font-size: 17px !important;
+    div[data-testid="stDataEditor"] div[role="columnheader"],
+    div[data-testid="stDataEditor"] div[role="columnheader"] span,
+    div[data-testid="stDataEditor"] [data-testid="column-header-name"] {
+        justify-content: center !important; text-align: center !important; width: 100%;
     }
+    div[data-testid="stDataEditor"] canvas + div {
+        text-align: center !important;
+    }
+    div[data-testid="stDataEditor"] [class*="cell"] {
+        text-align: center !important; justify-content: center !important;
+    }
+    /* 테이블 */
+    .full-width-table { width: 100% !important; border-collapse: collapse; margin-top: 15px; font-size: 16px !important; }
     .full-width-table th, .full-width-table td {
-        text-align: center !important;
-        vertical-align: middle !important;
-        padding: 15px 10px !important;
-        border: 1px solid #dee2e6;
+        text-align: center !important; vertical-align: middle !important;
+        padding: 12px 10px !important; border: 1px solid #e2e8f0;
     }
-    .full-width-table th {
-        background-color: #f1f3f5;
-        font-weight: bold;
-    }
-
-    /* 3. 타설하중 계산 결과 텍스트 */
+    .full-width-table th { background-color: #f1f5f9; font-weight: 700; color: #1e293b; }
+    /* 하중 계산 박스 */
     .load-calc-box {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 5px solid #007bff;
-        font-size: 18px !important;
-        line-height: 1.6;
+        background-color: #ffffff; padding: 18px; border-radius: 10px;
+        border: 1px solid #e2e8f0; border-left: 5px solid #3b82f6;
+        font-size: 16px !important; line-height: 1.7;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-    .load-calc-total {
-        font-size: 22px !important;
-        font-weight: bold;
-        color: #d32f2f;
-        margin-top: 10px;
-    }
-
-    /* 4. 판정 결과 색상 */
-    .red-text { color: #FF4B4B; font-weight: bold; }
-    .blue-text { color: #1F77B4; font-weight: bold; }
-
-    /* 5. 안내 문구 스타일 (수정됨) */
+    .load-calc-total { font-size: 20px !important; font-weight: 800; color: #dc2626; margin-top: 10px; }
+    /* 판정 */
+    .red-text { color: #dc2626; font-weight: 700; }
+    .blue-text { color: #3b82f6; font-weight: 700; }
+    /* 안내 문구 */
     .guide-box {
-        background-color: #eef2f7;
-        padding: 15px;
-        border-radius: 8px;
-        font-size: 15px;
-        color: #2c3e50;
-        margin-bottom: 15px;
-        border-left: 5px solid #adb5bd;
-        line-height: 1.6;
+        background-color: #f1f5f9; padding: 15px; border-radius: 8px;
+        font-size: 14px; color: #334155; margin-bottom: 15px;
+        border-left: 5px solid #94a3b8; line-height: 1.6;
     }
+    /* 입력 필드 스타일 - 깔끔한 사각 테두리 */
+    div[data-testid="stNumberInput"] > div,
+    div[data-testid="stTextInput"] > div { border: none !important; box-shadow: none !important; background: transparent !important; }
+    [data-baseweb="base-input"],
+    [data-baseweb="base-input"] > div { border: none !important; box-shadow: none !important; background-color: #ffffff !important; }
+    div[data-baseweb="input"],
+    div[data-baseweb="number-input"] { background-color: #ffffff !important; border: none !important; outline: 1px solid #94a3b8 !important; outline-offset: -1px !important; border-radius: 4px !important; box-shadow: none !important; }
+    div[data-baseweb="select"] > div { background-color: #ffffff !important; border: none !important; outline: 1px solid #94a3b8 !important; outline-offset: -1px !important; border-radius: 4px !important; box-shadow: none !important; }
+    /* 라벨 스타일 */
+    div[data-testid="stWidgetLabel"] p { font-size: 11.5px !important; margin-bottom: 2px !important; line-height: 1.2 !important; }
+    /* 입력 높이 통일 */
+    div[data-baseweb="input"], div[data-baseweb="number-input"] { min-height: 32px !important; height: auto !important; }
+    input[type=number] { -moz-appearance: textfield; font-size: 13px !important; padding: 4px 8px !important; }
+    /* 요소 간격 */
+    .stNumberInput { margin-bottom: 2px !important; }
+    div[data-testid="stVerticalBlock"] > div { gap: 0.3rem !important; }
+    div[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] { gap: 0.2rem !important; }
+    /* 테이블 배경 흰색 */
+    .full-width-table td { background-color: #ffffff; }
+    div[data-testid="stTable"] table { background-color: #ffffff !important; }
+    div[data-testid="stDataEditor"] { background-color: #ffffff !important; }
     </style>
     """, unsafe_allow_html=True)
 
 COL_THICK = "슬래브 두께(mm)"
 COL_LOAD_CONST = "시공하중(kN/m²)"
-COL_LOAD_EXTRA = "마감여유(kN/m²)"
+COL_LOAD_EXTRA = "여유하중(kN/m²)"
 COL_LOAD_LIVE = "활하중(kN/m²)"
 
 # ==========================================
 # 1. 데이터 관리 로직
 # ==========================================
-def reset_data(total_rows=6):
-    default_floors = [f"{i}F" for i in range(total_rows, 0, -1)]
-    if total_rows > 0: default_floors[-1] = "B1F(기초)"
+def generate_floor_names(top_type, top_num, bot_type, bot_num):
+    """시작층(최상층)~끝층(최하층)에 따라 층이름 리스트 생성
+    top_type/bot_type: '지상' 또는 '지하'
+    top_num/bot_num: 층 번호 (양수)
+    """
+    # 통합 인덱스로 변환: 지상 N층=+N, 지하 M층=-M
+    top_idx = top_num if top_type == "지상" else -top_num
+    bot_idx = bot_num if bot_type == "지상" else -bot_num
+
+    names = []
+    for idx in range(top_idx, bot_idx - 1, -1):
+        if idx == 0:
+            continue  # 0층은 없음
+        if idx > 0:
+            names.append(f"{idx}F")
+        else:
+            names.append(f"B{abs(idx)}F")
+    # 마지막 층에 (기초) 붙이기
+    if names:
+        names[-1] = names[-1] + "(기초)"
+    return names
+
+def reset_data(top_type="지상", top_num=5, bot_type="지하", bot_num=1):
+    floor_names = generate_floor_names(top_type, top_num, bot_type, bot_num)
+    total_rows = len(floor_names)
     init_data = {
-        "층이름": default_floors + [""] * (20 - len(default_floors)),
-        COL_THICK: [210] * 20, "설계강도(MPa)": [30] * 20, "예상강도(MPa)": [14] * 20,
-        "타설간격(일)": [7] * 20, "전이유형": ["일반"] * 20,
-        COL_LOAD_EXTRA: [1.9] * 20, COL_LOAD_LIVE: [2.0] * 20, COL_LOAD_CONST: [1.0] * 20
+        "층이름": floor_names,
+        COL_THICK: [210] * total_rows, "설계강도(MPa)": [30] * total_rows, "예상강도(MPa)": [14] * total_rows,
+        "타설간격(일)": [7] * total_rows, "전이유형": ["일반"] * total_rows,
+        COL_LOAD_EXTRA: [1.9] * total_rows, COL_LOAD_LIVE: [2.0] * total_rows, COL_LOAD_CONST: [1.0] * total_rows
     }
     init_data[COL_LOAD_CONST][0] = 2.5
-    df = pd.DataFrame(init_data).iloc[:total_rows]
-    # 타설층(첫 번째 행)의 예상강도를 '-'로 설정
-    if len(df) > 0:
-        df["예상강도(MPa)"] = df["예상강도(MPa)"].astype(object)
-        df.iat[0, df.columns.get_loc("예상강도(MPa)")] = "-"
+    df = pd.DataFrame(init_data)
     st.session_state.master_df = df
 
 def update_df_callback():
@@ -119,31 +163,75 @@ def update_df_callback():
         edited = st.session_state["main_editor"]
         for row_idx, changes in edited["edited_rows"].items():
             for key, val in changes.items():
+                # 층이름에서 '(타설층)' 접미사 제거
+                if key == "층이름" and isinstance(val, str):
+                    val = val.replace(" (타설층)", "").replace("(타설층)", "")
                 st.session_state.master_df.iat[row_idx, st.session_state.master_df.columns.get_loc(key)] = val
 
 if 'master_df' not in st.session_state:
-    reset_data(6)
+    reset_data("지상", 5, "지하", 1)
+
+# 세션 상태 초기화
+if 'top_type' not in st.session_state:
+    st.session_state.top_type = "지상"
+if 'top_num' not in st.session_state:
+    st.session_state.top_num = 5
+if 'bot_type' not in st.session_state:
+    st.session_state.bot_type = "지하"
+if 'bot_num' not in st.session_state:
+    st.session_state.bot_num = 1
 
 st.sidebar.header("검토 설정")
-cur_rows = len(st.session_state.master_df)
-new_rows = st.sidebar.number_input("전체 층수", min_value=1, max_value=20, value=cur_rows)
+st.sidebar.markdown("**최상층 (타설층)**")
+top_c1, top_c2, top_c3 = st.sidebar.columns([1, 1, 1])
+new_top_type = top_c1.selectbox("구분##top", ["지상", "지하"], index=0 if st.session_state.top_type == "지상" else 1, label_visibility="collapsed")
+new_top_num = top_c2.number_input("층##top", min_value=1, max_value=30, value=st.session_state.top_num, label_visibility="collapsed")
+top_c3.markdown("<div style='line-height:38px; padding-top:4px;'>층</div>", unsafe_allow_html=True)
 
-if new_rows != cur_rows:
-    if new_rows > cur_rows:
-        add_count = new_rows - cur_rows
+st.sidebar.markdown("**최하층**")
+bot_c1, bot_c2, bot_c3 = st.sidebar.columns([1, 1, 1])
+new_bot_type = bot_c1.selectbox("구분##bot", ["지상", "지하"], index=0 if st.session_state.bot_type == "지상" else 1, label_visibility="collapsed")
+new_bot_num = bot_c2.number_input("층##bot", min_value=1, max_value=30, value=st.session_state.bot_num, label_visibility="collapsed")
+bot_c3.markdown("<div style='line-height:38px; padding-top:4px;'>층</div>", unsafe_allow_html=True)
+
+# 유효성 검사: 최상층이 최하층보다 위에 있어야 함
+top_idx = new_top_num if new_top_type == "지상" else -new_top_num
+bot_idx = new_bot_num if new_bot_type == "지상" else -new_bot_num
+
+if top_idx <= bot_idx:
+    st.sidebar.error("최상층이 최하층보다 위에 있어야 합니다.")
+elif (new_top_type != st.session_state.top_type or new_top_num != st.session_state.top_num or
+      new_bot_type != st.session_state.bot_type or new_bot_num != st.session_state.bot_num):
+    st.session_state.top_type = new_top_type
+    st.session_state.top_num = new_top_num
+    st.session_state.bot_type = new_bot_type
+    st.session_state.bot_num = new_bot_num
+    new_floor_names = generate_floor_names(new_top_type, new_top_num, new_bot_type, new_bot_num)
+    new_total = len(new_floor_names)
+    old_total = len(st.session_state.master_df)
+    if new_total > old_total:
+        add_count = new_total - old_total
         new_rows_df = pd.DataFrame({
             "층이름": [""] * add_count, COL_THICK: [210] * add_count, "설계강도(MPa)": [30] * add_count,
             "예상강도(MPa)": [14] * add_count, "타설간격(일)": [7] * add_count, "전이유형": ["일반"] * add_count,
             COL_LOAD_EXTRA: [1.9] * add_count, COL_LOAD_LIVE: [2.0] * add_count, COL_LOAD_CONST: [1.0] * add_count
         })
         st.session_state.master_df = pd.concat([st.session_state.master_df, new_rows_df], ignore_index=True)
-    else:
-        st.session_state.master_df = st.session_state.master_df.iloc[:new_rows]
+    elif new_total < old_total:
+        st.session_state.master_df = st.session_state.master_df.iloc[:new_total]
+    # 층이름 갱신
+    st.session_state.master_df["층이름"] = new_floor_names
     st.rerun()
 
 n_check = 1 # 기본 타설 층수는 1층으로 고정 (14MPa 미달 시 자동으로 하중 합산됨)
 # num_beam_types input removed as requested.
-if st.sidebar.button("데이터 초기화"): reset_data(6); st.rerun()
+if st.sidebar.button("데이터 초기화"):
+    st.session_state.top_type = "지상"
+    st.session_state.top_num = 5
+    st.session_state.bot_type = "지하"
+    st.session_state.bot_num = 1
+    reset_data("지상", 5, "지하", 1)
+    st.rerun()
 
 # ==========================================
 # 2. 계산 엔진
@@ -292,7 +380,7 @@ def calculate_shoring_status(df, n_check, transfer_details):
 # ==========================================
 # 3. UI 렌더링
 # ==========================================
-st.markdown("<h1 style='text-align: center;'>가설 동바리 존치기간 검토</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='color: #1e293b; font-size: 1.6rem; font-weight: 800; margin-bottom: 10px;'>본동 동바리 설치 층수 검토</h1>", unsafe_allow_html=True)
 
 left_col, right_col = st.columns([1.3, 0.7])
 
@@ -317,10 +405,24 @@ with left_col:
         display_input_df, 
         column_config={
             "전이유형": st.column_config.SelectboxColumn("전이유형", options=["일반", "전이보", "전이매트"], required=True),
-            "예상강도(MPa)": st.column_config.Column("예상강도(MPa)")
+            "예상강도(MPa)": st.column_config.NumberColumn("예상강도(MPa)", min_value=0, max_value=100, step=1),
+            "_index": None
         },
-        use_container_width=True, height=350, key="main_editor", on_change=update_df_callback, hide_index=True
+        use_container_width=True, height=350, key="main_editor", on_change=update_df_callback, hide_index=True,
+        num_rows="fixed"
     )
+
+    # 하중 정보 입력 안내 이미지
+    _img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "하중정보_안내.png")
+    if os.path.exists(_img_path):
+        if "show_load_guide" not in st.session_state:
+            st.session_state.show_load_guide = False
+        _gc1, _gc2, _gc3 = st.columns([1, 1.2, 1])
+        with _gc2:
+            if st.button("하중 정보 입력 안내 보기 / 닫기", use_container_width=True):
+                st.session_state.show_load_guide = not st.session_state.show_load_guide
+        if st.session_state.show_load_guide:
+            st.image(_img_path, use_container_width=True)
 
     transfer_floors = st.session_state.master_df[st.session_state.master_df["전이유형"] == "전이보"]["층이름"].tolist()
     transfer_details = {}
@@ -335,24 +437,34 @@ with left_col:
         for f_name in transfer_floors:
             if not f_name: continue
             
-            # 콤팩트한 수량 입력 UI
-            num_beams = st.number_input(f"전이보 수량 ({f_name})", min_value=1, max_value=10, value=1, key=f"num_{f_name}")
+            st.markdown(f"**{f_name}**")
+            # 영향 면적 입력 (층 공통)
+            _ac1, _ac2, _ac3 = st.columns(3)
+            with _ac1:
+                ax = st.number_input(f"x-dir (mm)", value=8000, step=100, key=f"{f_name}_ax")
+            with _ac2:
+                ay = st.number_input(f"y-dir (mm)", value=8000, step=100, key=f"{f_name}_ay")
+            with _ac3:
+                area_influence = st.number_input(f"영향 면적 (㎡)", value=0.0, help="0 입력 시 (X×Y)로 자동 계산됩니다.", key=f"{f_name}_area_influence")
+            
+            # 전이보 수량 입력
+            _bcol1, _bcol2 = st.columns([1, 2])
+            with _bcol1:
+                num_beams = st.number_input(f"전이보 수량 ({f_name})", min_value=1, max_value=10, value=1, key=f"num_{f_name}")
             
             tabs = st.tabs([f"보 {i+1}" for i in range(num_beams)])
             f_beams = []
             for i in range(num_beams):
                 with tabs[i]:
-                    c1, c2, c3 = st.columns(3)
+                    c1, c2, c3, c4 = st.columns(4)
                     with c1:
-                        ax = st.number_input(f"영향가로(X) (mm)", value=8000.0, key=f"{f_name}_{i}_ax")
-                        ay = st.number_input(f"영향세로(Y) (mm)", value=8000.0, key=f"{f_name}_{i}_ay")
-                        area_influence = st.number_input(f"영향 면적 (㎡)", value=0.0, help="0 입력 시 (X*Y)로 자동 계산됩니다.", key=f"{f_name}_{i}_area_influence")
+                        bw = st.number_input(f"보폭 (mm)", value=500, step=50, key=f"{f_name}_{i}_bw")
                     with c2:
-                        bw = st.number_input(f"보폭 (mm)", value=500.0, key=f"{f_name}_{i}_bw")
-                        bh = st.number_input(f"보춤 (mm)", value=900.0, key=f"{f_name}_{i}_bh")
+                        bl = st.number_input(f"보길이 (mm)", value=8000, step=100, key=f"{f_name}_{i}_bl")
                     with c3:
-                        bl = st.number_input(f"보길이 (mm)", value=8000.0, key=f"{f_name}_{i}_bl")
-                        bn = st.number_input(f"수량 (EA)", value=1, min_value=1, key=f"{f_name}_{i}_bn")
+                        bh = st.number_input(f"보춤 (mm)", value=900, step=50, key=f"{f_name}_{i}_bh")
+                    with c4:
+                        bn = st.number_input(f"중복수량 (EA)", value=1, min_value=1, key=f"{f_name}_{i}_bn")
                     f_beams.append({'ax':ax, 'ay':ay, 'area_influence': area_influence, 'bw':bw, 'bh':bh, 'bl':bl, 'bn':bn})
             transfer_details[f_name] = f_beams
 
@@ -411,7 +523,7 @@ with left_col:
 
 with right_col:
     st.markdown("### 4.서포트 배치도")
-    fig, ax = plt.subplots(figsize=(4, 7))
+    fig, ax = plt.subplots(figsize=(4, 5))
     df = st.session_state.master_df
     for i in range(len(df)):
         idx = (len(df)-1)-i; f_name = str(df.iat[idx,0]); f_type = df.iat[idx, 5]
