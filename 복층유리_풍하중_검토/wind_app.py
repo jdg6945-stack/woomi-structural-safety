@@ -22,6 +22,36 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib import colors
 
 
+RECOMMEND_PRICE_ROWS = [
+    {"rank": 1, "spec": "5mm(AN) + Air + 5mm(AN)", "rec1_default": 21000},
+    {"rank": 2, "spec": "5mm(HS) + Air + 5mm(AN)", "rec1_default": 26000},
+    {"rank": 3, "spec": "5mm(HS) + Air + 5mm(HS)", "rec1_default": 30000},
+    {"rank": 4, "spec": "6mm(AN) + Air + 6mm(AN)", "rec1_default": 30000},
+    {"rank": 5, "spec": "6mm(HS) + Air + 6mm(AN)", "rec1_default": 35000},
+    {"rank": 6, "spec": "6mm(HS) + Air + 6mm(HS)", "rec1_default": 40000},
+    {"rank": 7, "spec": "8mm(AN) + Air + 8mm(AN)", "rec1_default": None},
+    {"rank": 8, "spec": "8mm(HS) + Air + 8mm(AN)", "rec1_default": None},
+    {"rank": 9, "spec": "8mm(HS) + Air + 8mm(HS)", "rec1_default": None},
+    {"rank": 10, "spec": "5mm(FT) + Air + 5mm(AN)", "rec1_default": None},
+    {"rank": 11, "spec": "6mm(FT) + Air + 6mm(AN)", "rec1_default": None},
+    {"rank": 12, "spec": "8mm(FT) + Air + 8mm(AN)", "rec1_default": None},
+    {"rank": 13, "spec": "5mm(FT) + Air + 5mm(HS)", "rec1_default": None},
+    {"rank": 14, "spec": "6mm(FT) + Air + 6mm(HS)", "rec1_default": None},
+    {"rank": 15, "spec": "8mm(FT) + Air + 8mm(HS)", "rec1_default": None},
+    {"rank": 16, "spec": "5mm(FT) + Air + 5mm(FT)", "rec1_default": None},
+    {"rank": 17, "spec": "6mm(FT) + Air + 6mm(FT)", "rec1_default": None},
+    {"rank": 18, "spec": "8mm(FT) + Air + 8mm(FT)", "rec1_default": None},
+]
+
+
+def _default_rec1_prices() -> dict:
+    return {row["spec"]: row.get("rec1_default") for row in RECOMMEND_PRICE_ROWS}
+
+
+def _default_rec2_prices() -> dict:
+    return {row["spec"]: None for row in RECOMMEND_PRICE_ROWS}
+
+
 # ==========================================
 # PDF 유틸 함수 (호출 전에 정의)
 # ==========================================
@@ -209,6 +239,199 @@ def _get_spec_fill(spec: str) -> PatternFill:
     return PatternFill("solid", fgColor=fallback_palette[idx])
 
 
+def _get_active_combo_price_map(data: dict) -> dict:
+    """현재 추천 옵션 기준 조합 단가표를 반환한다."""
+    unit_prices = data.get("단가표", {}) if isinstance(data, dict) else {}
+    if not isinstance(unit_prices, dict):
+        return {}
+
+    rec_opt = str(data.get("유리 Spec 추천 옵션", "추천1")).strip()
+    if rec_opt == "추천1":
+        table = unit_prices.get("rec1_combo_prices", {})
+    elif rec_opt == "추천2":
+        table = unit_prices.get("rec2_combo_prices", {})
+    else:
+        # 추천3은 구조 중심이므로 단가표는 추천2 -> 추천1 순으로 fallback
+        table = unit_prices.get("rec2_combo_prices", {}) or unit_prices.get("rec1_combo_prices", {})
+
+    if not isinstance(table, dict) or not table:
+        table = unit_prices.get("combo_prices", {})
+
+    return table if isinstance(table, dict) else {}
+
+
+def _build_area_cost_summary(calc_results: list) -> dict:
+    """검토 결과에서 조합별 면적/단가/예상금액 집계를 생성한다."""
+    if not calc_results:
+        return {
+            "rows": [],
+            "total_area": 0.0,
+            "total_amount": 0.0,
+            "missing_specs": [],
+            "price_map": {},
+        }
+
+    first = calc_results[0]
+    data = first.get("data", {})
+    try:
+        num_floors = int(float(data.get("건물층수", 0) or 0))
+    except Exception:
+        num_floors = 0
+
+    spec_rank = {row["spec"]: int(row["rank"]) for row in RECOMMEND_PRICE_ROWS}
+    price_map = _get_active_combo_price_map(data)
+    area_by_spec = {}
+
+    for item in calc_results:
+        d = item.get("data", {})
+        brief = item.get("outs", {}).get("brief", "")
+        floor_specs = _extract_floor_recommendations(brief, num_floors)
+        try:
+            area = float(d.get("유리 폭 (m)", 0)) * float(d.get("유리 높이 (m)", 0))
+        except Exception:
+            area = 0.0
+        if area <= 0:
+            continue
+
+        for _, spec in floor_specs.items():
+            s = (spec or "").strip()
+            if not s or s in ("-", "FAIL"):
+                continue
+            area_by_spec[s] = area_by_spec.get(s, 0.0) + area
+
+    ordered_specs = sorted(area_by_spec.keys(), key=lambda s: (spec_rank.get(s, 999), s))
+    rows = []
+    total_area = 0.0
+    total_amount = 0.0
+    missing_specs = []
+
+    for spec in ordered_specs:
+        area = float(area_by_spec.get(spec, 0.0))
+        total_area += area
+
+        raw_price = price_map.get(spec, None)
+        price = None
+        if raw_price is not None and str(raw_price).strip() != "":
+            try:
+                p = float(raw_price)
+                if p > 0:
+                    price = p
+            except Exception:
+                price = None
+
+        amount = None
+        if price is None:
+            missing_specs.append(spec)
+        else:
+            amount = area * price
+            total_amount += amount
+
+        rows.append({
+            "spec": spec,
+            "area": area,
+            "price": price,
+            "amount": amount,
+        })
+
+    return {
+        "rows": rows,
+        "total_area": total_area,
+        "total_amount": total_amount,
+        "missing_specs": missing_specs,
+        "price_map": price_map,
+    }
+
+
+def _build_area_cost_summary_for_item(item: dict, all_calc_results: list) -> dict:
+    """단일 유리(calc result) 항목에 대한 면적/단가/예상금액 집계를 생성한다."""
+    if not item:
+        return {
+            "rows": [],
+            "total_area": 0.0,
+            "total_amount": 0.0,
+            "missing_specs": [],
+        }
+
+    first_result = all_calc_results[0] if all_calc_results else item
+    data = first_result.get("data", {})
+    try:
+        num_floors = int(float(data.get("건물층수", 0) or 0))
+    except Exception:
+        num_floors = 0
+
+    spec_rank = {row["spec"]: int(row["rank"]) for row in RECOMMEND_PRICE_ROWS}
+    price_map = _get_active_combo_price_map(first_result.get("data", {}))
+
+    d = item.get("data", {})
+    brief = item.get("outs", {}).get("brief", "")
+    floor_specs = _extract_floor_recommendations(brief, num_floors)
+    try:
+        area = float(d.get("유리 폭 (m)", 0)) * float(d.get("유리 높이 (m)", 0))
+    except Exception:
+        area = 0.0
+
+    if area <= 0:
+        return {
+            "rows": [],
+            "total_area": 0.0,
+            "total_amount": 0.0,
+            "missing_specs": [],
+        }
+
+    # 이 유리에서 사용되는 조합들 수집
+    unique_specs = set()
+    for _, spec in floor_specs.items():
+        s = (spec or "").strip()
+        if s and s not in ("-", "FAIL"):
+            unique_specs.add(s)
+
+    ordered_specs = sorted(unique_specs, key=lambda s: (spec_rank.get(s, 999), s))
+    rows = []
+    total_area = 0.0
+    total_amount = 0.0
+    missing_specs = []
+
+    for spec in ordered_specs:
+        # 각 조합이 이 유리에서 차지하는 비율 계산 (층별로 균등 분배)
+        num_layers_with_spec = sum(1 for _, s in floor_specs.items() if (s or "").strip() == spec)
+        if num_layers_with_spec == 0:
+            continue
+        spec_area = area * num_layers_with_spec / max(1, len([s for s in floor_specs.values() if (s or "").strip() not in ("-", "FAIL", "")]))
+
+        raw_price = price_map.get(spec, None)
+        price = None
+        if raw_price is not None and str(raw_price).strip() != "":
+            try:
+                p = float(raw_price)
+                if p > 0:
+                    price = p
+            except Exception:
+                price = None
+
+        amount = None
+        if price is None:
+            missing_specs.append(spec)
+        else:
+            amount = spec_area * price
+            total_amount += amount
+
+        total_area += spec_area
+
+        rows.append({
+            "spec": spec,
+            "area": spec_area,
+            "price": price,
+            "amount": amount,
+        })
+
+    return {
+        "rows": rows,
+        "total_area": total_area,
+        "total_amount": total_amount,
+        "missing_specs": missing_specs,
+    }
+
+
 def _generate_excel(calc_results: list) -> bytes:
     """요청 폼 기준: 유리별 열 확장 + 층별 스펙 변경시 구분색 적용"""
     if not calc_results:
@@ -240,8 +463,6 @@ def _generate_excel(calc_results: list) -> bytes:
     for idx in range(len(calc_results)):
         col = chr(ord("B") + idx)
         ws.column_dimensions[col].width = 24
-    ws.column_dimensions["G"].width = 14
-    ws.column_dimensions["H"].width = 34
 
     ws["A1"] = "XX현장 유리두께 정리"
     ws["A1"].font = title_font
@@ -498,6 +719,58 @@ st.markdown("""
     font-size: 12px;
     color: #64748b;
 }
+.summary-wrap {
+    background: #ffffff;
+    border: 1.5px solid #dbe4f0;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+}
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+.summary-card {
+    background: #f8fbff;
+    border: 1px solid #d6e4f5;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+.summary-label {
+    font-size: 12px;
+    color: #64748b;
+}
+.summary-value {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-top: 4px;
+}
+.combo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+.combo-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+.combo-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 6px;
+}
+.combo-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #475569;
+    padding: 2px 0;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -511,6 +784,18 @@ if "grouped_signature" not in st.session_state:
     st.session_state["grouped_signature"] = None
 if "glass_inputs" not in st.session_state:
     st.session_state["glass_inputs"] = [{"name": "유리1", "w": 2.0, "h": 2.0}]
+if "rec1_price_inputs" not in st.session_state:
+    st.session_state["rec1_price_inputs"] = _default_rec1_prices()
+if "rec2_price_inputs" not in st.session_state:
+    # 이전 버전의 combo_price_inputs가 있으면 추천2 초기값으로 이관
+    legacy = st.session_state.get("combo_price_inputs", {})
+    if isinstance(legacy, dict) and legacy:
+        st.session_state["rec2_price_inputs"] = {
+            row["spec"]: legacy.get(row["spec"], None)
+            for row in RECOMMEND_PRICE_ROWS
+        }
+    else:
+        st.session_state["rec2_price_inputs"] = _default_rec2_prices()
 
 for i, g in enumerate(st.session_state.get("glass_inputs", []), start=1):
     if not isinstance(g, dict):
@@ -675,49 +960,75 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown('<div class="sidebar-group-title">유리 Spec 추천 옵션</div>', unsafe_allow_html=True)
-    rec_tab1, rec_tab2, rec_tab3 = st.tabs(["추천1", "추천2", "추천3"])
+    st.caption("미입력 값은 후순위로 밀림 (단위: 원/m2)")
 
-    with rec_tab1:
-        st.caption("평균 단가로 유리Spec 추천, 5,6,8mm 두께 순/AN,HS,FT 순(8mm/FT 후순위)으로 추천")
-        if st.button("추천1 적용", use_container_width=True, key="apply_rec1"):
-            st.session_state["spec_recommend_option"] = "추천1"
+    rec_price_df = pd.DataFrame([
+        {
+            "구분": row["rank"],
+            "재질 및 두께": row["spec"],
+            "추천1(원)": st.session_state["rec1_price_inputs"].get(row["spec"], None),
+            "추천2(원)": st.session_state["rec2_price_inputs"].get(row["spec"], None),
+        }
+        for row in RECOMMEND_PRICE_ROWS
+    ])
 
-    with rec_tab2:
-        st.caption("직접 단판유리 단가를 입력하고, 조합된 유리단가 합계가 가장 낮은 조합을 우선 추천(VE 활용 가능)")
-        st.caption("단가 단위: 원/m²")
-        c_5_an, c_5_hs, c_5_ft = st.columns(3)
-        with c_5_an:
-            price_5_an = st.number_input("5mm AN", min_value=0, value=10000, step=100, key="price_5_an")
-        with c_5_hs:
-            price_5_hs = st.number_input("5mm HS", min_value=0, value=13000, step=100, key="price_5_hs")
-        with c_5_ft:
-            price_5_ft = st.number_input("5mm FT", min_value=0, value=18000, step=100, key="price_5_ft")
+    with st.form("rec_price_table_form", clear_on_submit=False):
+        edited_price_df = st.data_editor(
+            rec_price_df,
+            use_container_width=False,
+            hide_index=True,
+            num_rows="fixed",
+            key="rec_combo_price_editor",
+            disabled=["구분", "재질 및 두께"],
+            column_config={
+                "구분": st.column_config.NumberColumn("구분", width="small"),
+                "재질 및 두께": st.column_config.TextColumn("재질 및 두께", width="medium"),
+                "추천1(원)": st.column_config.NumberColumn("추천1(원)", width="small", min_value=0, step=1000),
+                "추천2(원)": st.column_config.NumberColumn("추천2(원)", width="small", min_value=0, step=1000),
+            },
+        )
+        save_price_table = st.form_submit_button("단가표 저장", use_container_width=True)
 
-        c_6_an, c_6_hs, c_6_ft = st.columns(3)
-        with c_6_an:
-            price_6_an = st.number_input("6mm AN", min_value=0, value=12000, step=100, key="price_6_an")
-        with c_6_hs:
-            price_6_hs = st.number_input("6mm HS", min_value=0, value=15000, step=100, key="price_6_hs")
-        with c_6_ft:
-            price_6_ft = st.number_input("6mm FT", min_value=0, value=20000, step=100, key="price_6_ft")
+    if save_price_table:
+        for _, row in edited_price_df.iterrows():
+            spec = str(row["재질 및 두께"])
+            rec1_raw = row["추천1(원)"]
+            rec2_raw = row["추천2(원)"]
 
-        c_8_an, c_8_hs, c_8_ft = st.columns(3)
-        with c_8_an:
-            price_8_an = st.number_input("8mm AN", min_value=0, value=16000, step=100, key="price_8_an")
-        with c_8_hs:
-            price_8_hs = st.number_input("8mm HS", min_value=0, value=20000, step=100, key="price_8_hs")
-        with c_8_ft:
-            price_8_ft = st.number_input("8mm FT", min_value=0, value=26000, step=100, key="price_8_ft")
+            if pd.isna(rec1_raw):
+                st.session_state["rec1_price_inputs"][spec] = None
+            else:
+                try:
+                    st.session_state["rec1_price_inputs"][spec] = max(0.0, float(rec1_raw))
+                except Exception:
+                    st.session_state["rec1_price_inputs"][spec] = None
 
-        if st.button("추천2 적용", use_container_width=True, key="apply_rec2"):
-            st.session_state["spec_recommend_option"] = "추천2"
+            if pd.isna(rec2_raw):
+                st.session_state["rec2_price_inputs"][spec] = None
+            else:
+                try:
+                    st.session_state["rec2_price_inputs"][spec] = max(0.0, float(rec2_raw))
+                except Exception:
+                    st.session_state["rec2_price_inputs"][spec] = None
+        st.success("단가표 저장 완료")
 
-    with rec_tab3:
+    selected_option = st.radio(
+        "추천 옵션 선택",
+        ["추천1", "추천2", "추천3"],
+        horizontal=True,
+        key="recommend_option_picker",
+        index=["추천1", "추천2", "추천3"].index(st.session_state.get("spec_recommend_option", "추천1")),
+    )
+    if selected_option == "추천1":
+        st.caption("25년 평균 유리 단가")
+    elif selected_option == "추천2":
+        st.caption("유리 단가를 아는 경우, VE에 활용")
+    if selected_option == "추천3":
         st.caption("구조 기준: 허용 풍압(LR)이 낮은 순으로 충족 조합을 추천")
-        if st.button("추천3 적용", use_container_width=True, key="apply_rec3"):
-            st.session_state["spec_recommend_option"] = "추천3"
 
-    st.caption(f"현재 적용 옵션: {st.session_state['spec_recommend_option']}")
+    if st.button("선택 옵션 적용", use_container_width=True, key="apply_selected_option"):
+        st.session_state["spec_recommend_option"] = selected_option
+        st.success(f"{selected_option} 적용 완료")
 
     st.markdown("---")
     btn_calc = st.button("🔍 검토 실행", use_container_width=True, type="primary")
@@ -809,15 +1120,16 @@ if btn_calc:
         "최저층 개수": str(low_n),
         "유리 Spec 추천 옵션": st.session_state.get("spec_recommend_option", "추천1"),
         "단가표": {
-            "5_AN": float(st.session_state.get("price_5_an", 0.0)),
-            "5_HS": float(st.session_state.get("price_5_hs", 0.0)),
-            "5_FT": float(st.session_state.get("price_5_ft", 0.0)),
-            "6_AN": float(st.session_state.get("price_6_an", 0.0)),
-            "6_HS": float(st.session_state.get("price_6_hs", 0.0)),
-            "6_FT": float(st.session_state.get("price_6_ft", 0.0)),
-            "8_AN": float(st.session_state.get("price_8_an", 0.0)),
-            "8_HS": float(st.session_state.get("price_8_hs", 0.0)),
-            "8_FT": float(st.session_state.get("price_8_ft", 0.0)),
+            "rec1_combo_prices": {
+                spec: float(price)
+                for spec, price in st.session_state.get("rec1_price_inputs", {}).items()
+                if price is not None and str(price).strip() != ""
+            },
+            "rec2_combo_prices": {
+                spec: float(price)
+                for spec, price in st.session_state.get("rec2_price_inputs", {}).items()
+                if price is not None and str(price).strip() != ""
+            },
         },
     }
     if mode == "individual":
@@ -932,6 +1244,33 @@ if "calc_results" in st.session_state and st.session_state["calc_results"]:
                             in_result = False
                         else:
                             result_html_lines.append(f'<div class="result-normal">{line}</div>')
+
+                # 각 탭별로 해당 유리의 summary 생성
+                item_data = item.get("data", {})
+                rec_option = item_data.get("유리 Spec 추천 옵션", "추천1")
+                
+                item_test_lines = []
+                # 추천3으로 검토시 유리면적 및 예상금액 표시 안함 (단가 입력 불가)
+                if rec_option != "추천3":
+                    item_summary = _build_area_cost_summary_for_item(item, calc_results)
+                    if item_summary.get("rows"):
+                        item_test_lines.append('<div class="result-header" style="margin-top:10px;">▶ 유리 면적 및 예상금액</div>')
+                        for i, r in enumerate(item_summary.get("rows", []), start=1):
+                            spec = r.get("spec", "-")
+                            area = float(r.get("area", 0.0))
+                            price = r.get("price", None)
+                            amount = r.get("amount", None)
+                            price_txt = f"{int(price):,}원/m2" if price is not None else "미입력"
+                            amount_txt = f"{int(amount):,}원" if amount is not None else "확인 불가"
+                            item_test_lines.append(f'<div class="result-normal">{i}. {spec} | 면적 {area:.2f}m2 | 단가 {price_txt} | 합계 {amount_txt}</div>')
+                        item_test_lines.append(f'<div class="result-normal">총합계 면적: {float(item_summary.get("total_area", 0.0)):.2f}m2</div>')
+                        if item_summary.get("missing_specs"):
+                            item_test_lines.append('<div class="result-normal">해당 조합의 단가 입력 후 확인 가능</div>')
+                        else:
+                            item_test_lines.append(f'<div class="result-normal">예상금액: {int(float(item_summary.get("total_amount", 0.0))):,}원</div>')
+
+                if item_test_lines:
+                    result_html_lines.extend(item_test_lines)
 
                 result_body = "\n".join(result_html_lines) if result_html_lines else '<div class="result-normal" style="color:#94a3b8;">검토 결과가 없습니다.</div>'
                 st.markdown(f'''

@@ -202,6 +202,56 @@ def _pane_price(unit_prices: dict, thickness: int, glass_type: str) -> float:
         return 0.0
 
 
+def _combo_spec(t1: int, t2: int, typ1: str, typ2: str) -> str:
+    return f"{t1}mm({typ1}) + Air + {t2}mm({typ2})"
+
+
+def _combo_price(
+    unit_prices: dict,
+    t1: int,
+    t2: int,
+    typ1: str,
+    typ2: str,
+    recommend_option: str = "추천2",
+) -> Tuple[float, bool]:
+    """
+    조합 단가를 반환한다.
+    반환값: (price, is_missing)
+    - combo_prices에 값이 있으면 해당 값을 사용
+    - 없으면 pane 합계를 fallback으로 사용
+    - 둘 다 없으면 missing 처리
+    """
+    combo_prices = {}
+    if isinstance(unit_prices, dict):
+        if recommend_option == "추천1":
+            combo_prices = unit_prices.get("rec1_combo_prices", {})
+        elif recommend_option == "추천2":
+            combo_prices = unit_prices.get("rec2_combo_prices", {})
+        else:
+            # 하위호환/예외 상황에서는 추천2 단가표를 우선 사용
+            combo_prices = unit_prices.get("rec2_combo_prices", {})
+        if not isinstance(combo_prices, dict) or not combo_prices:
+            combo_prices = unit_prices.get("combo_prices", {})
+
+    spec = _combo_spec(t1, t2, typ1, typ2)
+
+    if isinstance(combo_prices, dict) and spec in combo_prices:
+        try:
+            p = float(combo_prices.get(spec, 0.0) or 0.0)
+            if p > 0:
+                return p, False
+        except Exception:
+            pass
+
+    # 하위호환: 단판 단가가 전달된 경우 합산 사용
+    p1 = _pane_price(unit_prices, t1, typ1)
+    p2 = _pane_price(unit_prices, t2, typ2)
+    if p1 > 0 and p2 > 0:
+        return p1 + p2, False
+
+    return 0.0, True
+
+
 def recommend_glass_for_floor(
     design_pressure_kN_m2: float,
     long_side_mm: int,
@@ -211,8 +261,7 @@ def recommend_glass_for_floor(
 ) -> dict:
     """
     - 모든 조합을 계산하여 floor_results에 담고,
-    - 추천(best)은 COMBOS에 정의된 '우선순위'를 그대로 따라
-      OK가 되는 '첫 번째' 조합을 고른다.
+        - 추천(best)은 옵션별 정렬 기준에 따라 OK 조합 중 최우선 1개를 선택한다.
     """
     if unit_prices is None:
         unit_prices = {}
@@ -225,7 +274,7 @@ def recommend_glass_for_floor(
         res = check_combo_with_deflection(
             design_pressure_kN_m2, long_side_mm, short_side_mm, t1, t2, typ1, typ2
         )
-        spec_cost = _pane_price(unit_prices, t1, typ1) + _pane_price(unit_prices, t2, typ2)
+        spec_cost, price_missing = _combo_price(unit_prices, t1, t2, typ1, typ2, recommend_option)
         lr_min = min(res["lr1"], res["lr2"])
         res.update({
             "t1": t1,
@@ -233,6 +282,7 @@ def recommend_glass_for_floor(
             "type1": typ1,
             "type2": typ2,
             "spec_cost": spec_cost,
+            "price_missing": price_missing,
             "lr_min": lr_min,
             "combo_rank": combo_rank[(t1, t2, typ1, typ2)],
         })
@@ -244,20 +294,17 @@ def recommend_glass_for_floor(
 
     if ok_results:
         if recommend_option == "추천2":
-            # 단가 우선: 조합 단가 합이 낮은 순, 동률 시 기존 순위
-            ok_results.sort(key=lambda r: (r["spec_cost"], r["combo_rank"]))
+            # 단가 우선: 단가 입력 조합 우선 -> 조합 단가 낮은 순 -> 기본 순위
+            ok_results.sort(key=lambda r: (r["price_missing"], r["spec_cost"], r["combo_rank"]))
             best = ok_results[0]
         elif recommend_option == "추천3":
             # 구조 우선(요청 기준): 허용 풍압이 낮은 순, 동률 시 기존 순위
             ok_results.sort(key=lambda r: (r["lr_min"], r["combo_rank"]))
             best = ok_results[0]
         else:
-            # 추천1(두께 우선): 기존 COMBOS 정의 순서
-            for t1, t2, typ1, typ2 in COMBOS:
-                r = result_by_combo[(t1, t2, typ1, typ2)]
-                if r.get("ok_all"):
-                    best = r
-                    break
+            # 추천1(기본 순위): 단가 미입력 조합은 후순위, 그 외는 기존 COMBOS 순서
+            ok_results.sort(key=lambda r: (r["price_missing"], r["combo_rank"]))
+            best = ok_results[0]
 
     return {"floor_results": results, "best": best}
 
@@ -466,15 +513,19 @@ class GlassCalculator:
             for r in floor_eval["floor_results"]:
                 spec = f"{r['t1']}mm({r['type1']}) + Air + {r['t2']}mm({r['type2']})"
                 ok = "OK" if r["ok_all"] else "NG"
-                price1 = _pane_price(unit_prices, r['t1'], r['type1'])
-                price2 = _pane_price(unit_prices, r['t2'], r['type2'])
-                total_price = price1 + price2
+                total_price, price_missing = _combo_price(
+                    unit_prices,
+                    r['t1'],
+                    r['t2'],
+                    r['type1'],
+                    r['type2'],
+                    recommend_option,
+                )
                 evid_items.append({
                     "spec": spec,
                     "ok": ok,
-                    "price1": price1,
-                    "price2": price2,
-                    "total_price": total_price
+                    "total_price": total_price,
+                    "price_missing": price_missing,
                 })
             floor_evidences.append({
                 "floor": i,
@@ -598,7 +649,10 @@ class GlassCalculator:
             show_price = (ev.get("recommend_option", "") == "추천2")
             for item in ev["items"]:
                 if show_price:
-                    price_calc = f" | {int(item['price1'])} + {int(item['price2'])} = {int(item['total_price'])}원/m²"
+                    if item.get("price_missing"):
+                        price_calc = " | 단가 미입력"
+                    else:
+                        price_calc = f" | {int(item['total_price'])}원/m²"
                     line = f"{item['spec']} | {item['ok']}{price_calc}"
                 else:
                     line = f"{item['spec']} | {item['ok']}"

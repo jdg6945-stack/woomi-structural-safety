@@ -152,6 +152,7 @@ cards = [
     {"title": "주차장 장비하중 검토", "desc": "주차장 진입 펌프카, 레미콘, 하이드로 크레인 등 안전성 검토", "key": "btn3", "page": "주차장_장비하중_검토/equipment_app.py"},
     {"title": "시공단계 부력 검토", "desc": "시공 중 지반 수위 변화에 따른 지하 구조물 부력 안정성 검토", "key": "btn4", "page": "시공단계_부력_검토/buoyancy_app.py"},
     {"title": "PRD 축력 검토", "desc": "역타 공법(Top-down) 적용 시 PRD 기초 허용 축력 및 목표층 시공 한계 검토", "key": "btn5", "page": "PRD_축력_검토/app.py"},
+    {"title": "단위세대 복층유리 재질/두께 검토", "desc": "풍하중에 대한 복층유리 재질 및 두께 검토", "key": "btn6", "page": "복층유리_풍하중_검토/wind_app.py"},
 ]
 
 # ── 카드 렌더링 ──
@@ -175,13 +176,15 @@ for i, card in enumerate(cards):
         col1, col2, col3 = st.columns(3)
         cols = [col1, col2, col3]
 
-# 마지막 빈 카드
-with cols[2]:
-    st.markdown("""
-    <div class="nav-card-disabled">
-        <h4>To be continue...</h4>
-        <p>준비 중</p>
-    </div>
-    """, unsafe_allow_html=True)
+# 하단 준비중 카드 3개
+col1, col2, col3 = st.columns(3)
+for col in [col1, col2, col3]:
+    with col:
+        st.markdown("""
+        <div class="nav-card-disabled">
+            <h4>To be continue...</h4>
+            <p>준비 중</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown('<div class="footer-spacer"></div>', unsafe_allow_html=True)

@@ -26,7 +26,8 @@ pages = {
         st.Page("지하주차장_동바리_설치_층수_검토/parking_app.py", title="지하주차장 동바리 설치 층수 검토", url_path="parking_shoring"),
         st.Page("주차장_장비하중_검토/equipment_app.py", title="주차장 장비하중 검토", url_path="equipment_load"),
         st.Page("시공단계_부력_검토/buoyancy_app.py", title="시공단계 부력 검토", url_path="buoyancy"),
-        st.Page("PRD_축력_검토/app.py", title="PRD 축력 검토", url_path="prd_calc")
+        st.Page("PRD_축력_검토/app.py", title="PRD 축력 검토", url_path="prd_calc"),
+        st.Page("복층유리_풍하중_검토/wind_app.py", title="단위세대 복층유리 재질/두께 검토", url_path="double_glazing")
     ]
 }
 
